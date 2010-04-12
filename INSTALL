@@ -1,0 +1,91 @@
+This section explains how to compile and deploy the onesocialweb plugin in an 
+Ignite’s Openfire server installation. 
+
+Last updated April 12th 2010.
+
+1. Pre-requisites 
+=================
+
+In order to build the code of the onesocialweb plugin you will need the following:
+
+- A JDK with Java 1.5 compliance or higher.
+- The Ant Java build tool.
+- The source code of the Openfire server, and to compile them. Please refer to: http://www.igniterealtime.org/builds/openfire/docs/latest/documentation/source-build.html
+- A properly configured installation of the Openfire server in which to deploy the plugin. Please see: http://www.igniterealtime.org/builds/openfire/docs/latest/documentation/install-guide.html
+ 
+2. Getting the code from the repository
+=======================================
+
+The source code of the onesocialweb plugin can be obtained from the Github repository.
+
+git clone http://github.com/onesocialweb/openfire-plugin.git
+
+The high level folder should have the following structure:
+
+- /src
+- /lib
+- changelog.html
+- license.html
+- plugin.xml
+- readme.html 
+ 
+3. Compiling the plugin
+=======================
+
+Once the plugin source code is in your local system, place the high level 
+folder into the /src/plugins folder of your Openfire source. You probably want
+to rename the directory or use a symbolic name with a different name 
+(e.g. call it 'onesocialweb' instead of 'openfire-plugin')
+
+After that, you can invoke via command line the plugin task in the 
+/build/build.xml file of the Openfire source  
+
+ant plugin –Dplugin=onesocialweb (or whatever the name of the folder in /plugins)
+
+This will compile the onesocialweb plugin source and package it into a 
+jar file. You will find it in the /target/openfire/plugins folder of your 
+Openfire source.  
+
+
+4. Deploying 
+============
+
+Once the plugin jar file has been built you can now place it in the 
+/plugins directory of your Openfire installation. The jar file will be 
+extracted and initialized by Openfire. 
+
+5. Working with the code - Project dependencies
+===============================================
+
+If you wish to dive into the code of the onesocialweb plugin, you can go 
+ahead and create an Eclipse project and name it ‘openfire-plugin’, for example. 
+
+Select the high-level plugin source code folder as the src folder of the 
+Eclipse Project (Create Project from Existing Source). 
+
+As you will find, the plugin requires classes in the Openfire server API, 
+so you will also need to create an Eclipse project for the Openfire server 
+and add it to the classpath (Buildpath) of your plugin project. 
+  
+
+6. Remote Process and XML debugging 
+===================================
+
+Ignite’s Openfire source is shipped with the xmldebugger plugin, which you 
+can also compile and deploy in your sever installation. This will print the 
+XML traffic on your server to the server’s console, and it is a nice way for 
+you to see how Profile and Activity querying and publishing in OneSocialWeb 
+looks like in terms of XMPP stanzas.  
+
+You can also setup remote debugging to the Openfire server and by placing 
+breakpoints into the onesocialweb plugin code you could follow the execution 
+of a bit of code that interests you. For this, start the Openfire sever in 
+remote debug mode; for example: 
+
+java -Xdebug -Xint -server -Xnoagent –
+
+Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8000 -jar ..\lib\startup.jar 
+
+and create a Remote Java Application Debug Configuration in Eclipse, 
+indicating the onesocialweb plugin project as the source, as well as the 
+address and remote debugging port of your Openfire server.

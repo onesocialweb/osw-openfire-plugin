@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<persistence xmlns="http://java.sun.com/xml/ns/persistence" version="1.0">
+  <persistence-unit name="onesocialweb">
+    <provider>org.apache.openjpa.persistence.PersistenceProviderImpl</provider>
+    <class>org.onesocialweb.openfire.model.acl.PersistentAclRule</class>
+    <class>org.onesocialweb.openfire.model.acl.PersistentAclAction</class>
+    <class>org.onesocialweb.openfire.model.acl.PersistentAclSubject</class>
+    <class>org.onesocialweb.openfire.model.activity.PersistentActivityEntry</class>
+    <class>org.onesocialweb.openfire.model.activity.PersistentActivityObject</class>
+    <class>org.onesocialweb.openfire.model.activity.PersistentActivityActor</class>
+    <class>org.onesocialweb.openfire.model.activity.PersistentActivityVerb</class>
+    <class>org.onesocialweb.openfire.model.atom.PersistentAtomCommon</class>    
+    <class>org.onesocialweb.openfire.model.atom.PersistentAtomCategory</class>        
+    <class>org.onesocialweb.openfire.model.atom.PersistentAtomContent</class>
+    <class>org.onesocialweb.openfire.model.atom.PersistentAtomEntry</class>
+    <class>org.onesocialweb.openfire.model.atom.PersistentAtomLink</class>
+    <class>org.onesocialweb.openfire.model.atom.PersistentAtomPerson</class>
+    <class>org.onesocialweb.openfire.model.atom.PersistentAtomSource</class>     
+    <class>org.onesocialweb.openfire.model.atom.PersistentAtomReplyTo</class>
+    <class>org.onesocialweb.openfire.model.relation.PersistentRelation</class>
+    <class>org.onesocialweb.openfire.model.PersistentSubscription</class>
+    <class>org.onesocialweb.openfire.model.PersistentFileEntry</class>       
+    <class>org.onesocialweb.openfire.model.PersistentActivityMessage</class>
+    <class>org.onesocialweb.openfire.model.vcard4.PersistentBirthdayField</class>
+    <class>org.onesocialweb.openfire.model.vcard4.PersistentFullNameField</class>
+    <class>org.onesocialweb.openfire.model.vcard4.PersistentGenderField</class>
+    <class>org.onesocialweb.openfire.model.vcard4.PersistentNoteField</class>
+    <class>org.onesocialweb.openfire.model.vcard4.PersistentPhotoField</class>
+    <class>org.onesocialweb.openfire.model.vcard4.PersistentProfile</class>            
+  </persistence-unit>
+</persistence>
