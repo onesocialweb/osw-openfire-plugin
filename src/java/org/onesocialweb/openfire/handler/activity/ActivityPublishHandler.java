@@ -74,7 +74,7 @@ public class ActivityPublishHandler extends PEPCommandHandler {
 			
 			// If a recipient is specified, it must be equal to the sender
 			// bareJID
-			if (recipient != null && !recipient.equals(sender.toBareJID())) {
+			if (recipient != null && !recipient.toString().equals(sender.toBareJID())) {
 				IQ result = IQ.createResultIQ(packet);
 				result.setChildElement(packet.getChildElement().createCopy());
 				result.setError(PacketError.Condition.not_authorized);
