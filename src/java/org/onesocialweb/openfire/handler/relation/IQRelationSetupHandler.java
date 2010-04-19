@@ -69,20 +69,29 @@ public class IQRelationSetupHandler extends IQHandler {
 		// (oufofbounds etc...) can trigger a server error and we can send a
 		// error result packet
 		try {
-
-			// Only a local user can request to setup a relation
-			if (!userManager.isRegisteredUser(sender.getNode())) {
+			
+			// A valid request is an IQ of type set, 
+			if (!packet.getType().equals(IQ.Type.set)) {
+				IQ result = IQ.createResultIQ(packet);
+				result.setChildElement(packet.getChildElement().createCopy());
+				result.setError(PacketError.Condition.bad_request);
+				return result;
+			}
+			
+			// If a recipient is specified, it must be equal to the sender
+			// bareJID
+			if (recipient != null && !recipient.toString().equals(sender.toBareJID())) {
 				IQ result = IQ.createResultIQ(packet);
 				result.setChildElement(packet.getChildElement().createCopy());
 				result.setError(PacketError.Condition.not_authorized);
 				return result;
 			}
-
-			// A valid request is an IQ of type set, sent to the bare server
-			if ((!packet.getType().equals(IQ.Type.set) || (recipient != null && recipient.getNode() != null))) {
+			
+			// Only a local user can publish an activity to his stream
+			if (!userManager.isRegisteredUser(sender.getNode())) {
 				IQ result = IQ.createResultIQ(packet);
 				result.setChildElement(packet.getChildElement().createCopy());
-				result.setError(PacketError.Condition.bad_request);
+				result.setError(PacketError.Condition.not_authorized);
 				return result;
 			}
 
