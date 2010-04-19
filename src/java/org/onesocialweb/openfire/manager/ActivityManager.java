@@ -120,6 +120,7 @@ public class ActivityManager {
 			object.setId(DefaultAtomHelper.generateId());
 		}
 		entry.setActor(actor);
+		entry.setPublished(Calendar.getInstance().getTime());
 		em.persist(entry);
 		em.getTransaction().commit();
 		em.close();
