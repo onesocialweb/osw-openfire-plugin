@@ -60,33 +60,17 @@ public class ActivitySubscriptionsHandler extends PEPCommandHandler {
 		// error result packet
 		try {
 
-			// A valid request is an IQ of type get, 
-			if (!packet.getType().equals(IQ.Type.get)) {
+			// A valid request is an IQ of type get, for a valid and local recipient
+			if (!(packet.getType().equals(IQ.Type.get) && recipient != null && recipient.getNode() != null 
+					&& userManager.isRegisteredUser(recipient.getNode()))) {
 				IQ result = IQ.createResultIQ(packet);
 				result.setChildElement(packet.getChildElement().createCopy());
 				result.setError(PacketError.Condition.bad_request);
 				return result;
 			}
-			
-			// If a recipient is specified, it must be equal to the sender
-			// bareJID
-			if (recipient != null && !recipient.equals(sender.toBareJID())) {
-				IQ result = IQ.createResultIQ(packet);
-				result.setChildElement(packet.getChildElement().createCopy());
-				result.setError(PacketError.Condition.not_authorized);
-				return result;
-			}
-			
-			// Only a local user can query for his subscriptions
-			if (!userManager.isRegisteredUser(sender.getNode())) {
-				IQ result = IQ.createResultIQ(packet);
-				result.setChildElement(packet.getChildElement().createCopy());
-				result.setError(PacketError.Condition.not_authorized);
-				return result;
-			}
 
 			// Fetch the subscriptions
-			List<Subscription> subscriptions = activityManager.getSubscriptions(sender.toBareJID());
+			List<Subscription> subscriptions = activityManager.getSubscriptions(recipient.toBareJID());
 
 			// Send a success result
 			IQ result = IQ.createResultIQ(packet);
