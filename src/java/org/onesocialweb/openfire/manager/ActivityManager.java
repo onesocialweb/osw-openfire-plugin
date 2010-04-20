@@ -19,17 +19,23 @@ package org.onesocialweb.openfire.manager;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import javax.activity.InvalidActivityException;
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 
 import org.dom4j.dom.DOMDocument;
+import org.jivesoftware.openfire.SessionManager;
 import org.jivesoftware.openfire.XMPPServer;
 import org.jivesoftware.openfire.roster.Roster;
 import org.jivesoftware.openfire.roster.RosterItem;
 import org.jivesoftware.openfire.roster.RosterManager;
+import org.jivesoftware.openfire.session.ClientSession;
 import org.jivesoftware.openfire.user.User;
 import org.jivesoftware.openfire.user.UserManager;
 import org.jivesoftware.openfire.user.UserNotFoundException;
@@ -210,7 +216,10 @@ public class ActivityManager {
 		em.persist(message);
 		em.getTransaction().commit();
 		em.close();
+				
 	}
+	
+	
 	
 	/**
 	 * Subscribe an entity to another entity activities.
@@ -336,19 +345,19 @@ public class ActivityManager {
 		// Send to this user
 		alreadySent.add(fromJID);
 		message.setTo(fromJID);
-		server.getMessageRouter().route(message);
-
+		server.getMessageRouter().route(message);	
+						
 		// Send to all subscribers
 		for (Subscription activitySubscription : subscriptions) {
 			String recipientJID = activitySubscription.getSubscriber();
 			if (!canSee(entry, roster, recipientJID)) {
 				continue;
 			}
-			alreadySent.add(recipientJID);
+			alreadySent.add(recipientJID);						
 			message.setTo(recipientJID);
-			server.getMessageRouter().route(message);
+			server.getMessageRouter().route(message);	
 		}
-		
+
 		// Send to recipients, if they can see it and have not already received it
 		if (entry.hasRecipients()) {
 			for (AtomReplyTo recipient : entry.getRecipients()) {
@@ -356,12 +365,14 @@ public class ActivityManager {
 				String recipientJID = recipient.getHref();  
 				if (!alreadySent.contains(recipientJID) && canSee(entry, roster, recipientJID)) {
 					alreadySent.add(fromJID);
+					
 					message.setTo(recipientJID);
-					server.getMessageRouter().route(message);
+					server.getMessageRouter().route(message);												
 				}
 			}
-		}
+		}			
 	}
+	
 
 	private List<String> getGroups(String ownerJID, String userJID) {
 		RosterManager rosterManager = XMPPServer.getInstance().getRosterManager();
