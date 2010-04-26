@@ -29,12 +29,17 @@ import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 
 import org.onesocialweb.model.vcard4.BirthdayField;
+import org.onesocialweb.model.vcard4.EmailField;
 import org.onesocialweb.model.vcard4.Field;
 import org.onesocialweb.model.vcard4.FullNameField;
 import org.onesocialweb.model.vcard4.GenderField;
+import org.onesocialweb.model.vcard4.NameField;
 import org.onesocialweb.model.vcard4.NoteField;
 import org.onesocialweb.model.vcard4.PhotoField;
 import org.onesocialweb.model.vcard4.Profile;
+import org.onesocialweb.model.vcard4.TelField;
+import org.onesocialweb.model.vcard4.TimeZoneField;
+import org.onesocialweb.model.vcard4.URLField;
 import org.onesocialweb.model.vcard4.exception.CardinalityException;
 import org.onesocialweb.model.vcard4.exception.UnsupportedFieldException;
 
@@ -56,6 +61,21 @@ public class PersistentProfile extends Profile {
 	@OneToMany(cascade=CascadeType.ALL, targetEntity=PersistentPhotoField.class, fetch=FetchType.EAGER)
 	private List<PhotoField> photoFields = new ArrayList<PhotoField>();
 	
+	@OneToMany(cascade=CascadeType.ALL, targetEntity=PersistentEmailField.class, fetch=FetchType.EAGER)
+	private List<EmailField> emailFields = new ArrayList<EmailField>();
+	
+	@OneToOne(cascade=CascadeType.ALL, targetEntity=PersistentNameField.class, fetch=FetchType.EAGER)
+	private NameField nameField;
+	
+	@OneToMany(cascade=CascadeType.ALL, targetEntity=PersistentTelField.class, fetch=FetchType.EAGER)
+	private List<TelField> telFields = new ArrayList<TelField>();
+	
+	@OneToOne(cascade=CascadeType.ALL, targetEntity=PersistentTimeZoneField.class, fetch=FetchType.EAGER)
+	private TimeZoneField timeZoneField;
+	
+	@OneToOne(cascade=CascadeType.ALL, targetEntity=PersistentUrlField.class, fetch=FetchType.EAGER)
+	private URLField urlField;
+	
 	@Id
 	private String userId;
 	
@@ -71,7 +91,19 @@ public class PersistentProfile extends Profile {
 			photoFields.add((PhotoField) field);
 		} else if (field instanceof NoteField) {
 			noteField = (NoteField) field;
-		} else {
+		} else if (field instanceof EmailField) {
+			emailFields.add((EmailField) field);
+		} else if (field instanceof TelField) {
+			telFields.add((TelField) field);
+		} 
+		else if (field instanceof NameField) {
+			nameField = (NameField) field;
+		} else if (field instanceof TimeZoneField) {
+			timeZoneField = (TimeZoneField) field;
+		} else if (field instanceof URLField) {
+			urlField = (URLField) field;
+		}
+		else {
 			throw new UnsupportedFieldException();
 		}
 	}
@@ -86,9 +118,27 @@ public class PersistentProfile extends Profile {
 			return genderField;
 		} else if (name.equals(NoteField.NAME)) {
 			return noteField;
+		} else if (name.equals(NameField.NAME)) {
+			return nameField;
+		} else if (name.equals(TimeZoneField.NAME)) {
+			return timeZoneField;
+		} else if (name.equals(URLField.NAME)) {
+			return urlField;
 		} else if (name.equals(PhotoField.NAME)) {
 			if (photoFields != null && photoFields.size() > 0) {
 				return photoFields.get(0);
+			} else {
+				return null;
+			}
+		} else if (name.equals(TelField.NAME)) {
+			if (telFields != null && telFields.size() > 0) {
+				return telFields.get(0);
+			} else {
+				return null;
+			}
+		} else if (name.equals(EmailField.NAME)) {
+			if (emailFields != null && emailFields.size() > 0) {
+				return emailFields.get(0);
 			} else {
 				return null;
 			}
@@ -104,9 +154,21 @@ public class PersistentProfile extends Profile {
 		if (noteField != null) fields.add(noteField);
 		if (genderField != null) fields.add(genderField);
 		if (fullNameField != null) fields.add(fullNameField);
+		if (nameField != null) fields.add(nameField);
+		if (timeZoneField != null) fields.add(timeZoneField);
+		if (urlField != null) fields.add(urlField);		
 		if (photoFields != null && photoFields.size() > 0) {
 			for (PhotoField photoField : photoFields) {
 				fields.add(photoField);
+			}
+		}
+		if (emailFields != null && emailFields.size() > 0) {
+			for (EmailField emailField : emailFields) {
+				fields.add(emailField);
+			}
+		}if (telFields != null && telFields.size() > 0) {
+			for (TelField telField : telFields) {
+				fields.add(telField);
 			}
 		}
 		return Collections.unmodifiableList(fields);
@@ -131,10 +193,34 @@ public class PersistentProfile extends Profile {
 			if (noteField != null) {
 				result.add(noteField);
 			}
+		} else if (name.equals(NameField.NAME)) {
+			if (nameField != null) {
+				result.add(nameField);
+			}
+		} else if (name.equals(TimeZoneField.NAME)) {
+			if (timeZoneField != null) {
+				result.add(timeZoneField);
+			}
+		} else if (name.equals(URLField.NAME)) {
+			if (urlField != null) {
+				result.add(urlField);
+			}
 		} else if (name.equals(PhotoField.NAME)) {
 			if (photoFields != null && photoFields.size() > 0) {
 				for (PhotoField photoField : photoFields) {
 					result.add(photoField);
+				}
+			}
+		} else if (name.equals(EmailField.NAME)) {
+			if (emailFields != null && emailFields.size() > 0) {
+				for (EmailField emailField : emailFields) {
+					result.add(emailField);
+				}
+			}
+		} else if (name.equals(TelField.NAME)) {
+			if (telFields != null && telFields.size() > 0) {
+				for (TelField telField : telFields) {
+					result.add(telField);
 				}
 			}
 		}
@@ -157,8 +243,21 @@ public class PersistentProfile extends Profile {
 			return (genderField != null);
 		} else if (name.equals(NoteField.NAME)) {
 			return (noteField != null);
-		} else if (name.equals(PhotoField.NAME)) {
+		} else if (name.equals(NameField.NAME)) {
+			return (nameField != null);
+		} else if (name.equals(URLField.NAME)) {
+			return (urlField != null);
+		} else if (name.equals(TimeZoneField.NAME)) {
+			return (timeZoneField != null);
+		}
+		else if (name.equals(PhotoField.NAME)) {
 			return (photoFields != null && photoFields.size() > 0);
+		}
+		else if (name.equals(TelField.NAME)) {
+			return (telFields != null && telFields.size() > 0);
+		}
+		else if (name.equals(EmailField.NAME)) {
+			return (emailFields != null && emailFields.size() > 0);
 		}
 		
 		return false;
@@ -170,7 +269,12 @@ public class PersistentProfile extends Profile {
 		birthdayField = null;
 		genderField   = null;
 		noteField     = null;
+		nameField=null;
+		urlField=null;
+		timeZoneField=null;
 		photoFields.clear();
+		emailFields.clear();
+		telFields.clear();
 	}
 
 	@Override
@@ -191,9 +295,29 @@ public class PersistentProfile extends Profile {
 			if (photoFields != null && photoFields.size() > 0) {
 				photoFields.remove(field);
 			}
-		} else if (field instanceof NoteField) {
+		} else if (field instanceof EmailField) {
+			if (emailFields != null && emailFields.size() > 0) {
+				emailFields.remove(field);
+			}
+		} else if (field instanceof TelField) {
+			if (telFields != null && telFields.size() > 0) {
+				telFields.remove(field);
+			}
+		}else if (field instanceof NoteField) {
 			if (noteField != null && noteField.equals(field)) {
 				noteField = null;
+			}
+		} else if (field instanceof NameField) {
+			if (nameField != null && nameField.equals(field)) {
+				nameField = null;
+			}
+		} else if (field instanceof URLField) {
+			if (urlField != null && urlField.equals(field)) {
+				urlField = null;
+			}
+		} else if (field instanceof TimeZoneField) {
+			if (timeZoneField != null && timeZoneField.equals(field)) {
+				timeZoneField = null;
 			}
 		}
 	}

@@ -16,14 +16,21 @@
  */
 package org.onesocialweb.openfire.handler;
 
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import javax.activity.InvalidActivityException;
 
 import org.dom4j.Element;
+import org.jivesoftware.openfire.SessionManager;
 import org.jivesoftware.openfire.XMPPServer;
+import org.jivesoftware.openfire.interceptor.InterceptorManager;
 import org.jivesoftware.openfire.interceptor.PacketInterceptor;
 import org.jivesoftware.openfire.interceptor.PacketRejectedException;
+import org.jivesoftware.openfire.session.ClientSession;
 import org.jivesoftware.openfire.session.Session;
 import org.jivesoftware.util.Log;
 import org.onesocialweb.model.activity.ActivityEntry;
@@ -59,6 +66,9 @@ public class MessageEventInterceptor implements PacketInterceptor {
 			final Message message = (Message) packet;
 			final JID fromJID = message.getFrom();
 			final JID toJID = message.getTo();
+			
+			if (!toJID.toBareJID().equalsIgnoreCase(toJID.toString()))
+				return;						
 
 			// We only care for messaes to local users
 			if (!server.isLocal(toJID) || !server.getUserManager().isRegisteredUser(toJID)) {
@@ -84,7 +94,18 @@ public class MessageEventInterceptor implements PacketInterceptor {
 				for (Element itemElement : (List<Element>) itemsElement.elements("item")) {
 					ActivityEntry activity = reader.readEntry(new ElementAdapter(itemElement.element("entry")));
 					try {
-						ActivityManager.getInstance().handleMessage(fromJID.toBareJID(), toJID.toBareJID(), activity);
+						
+						ActivityManager.getInstance().handleMessage(fromJID.toBareJID(), toJID.toBareJID(), activity);				
+						Set<JID> recipientFullJIDs = getFullJIDs(toJID.toBareJID());
+						Iterator<JID> it= recipientFullJIDs.iterator();
+						Message extendedMessage= message.createCopy();							
+						while (it.hasNext())
+						{
+							 String fullJid=it.next().toString();
+							 extendedMessage.setTo(fullJid);
+						     server.getMessageRouter().route(extendedMessage);
+						}
+						throw new PacketRejectedException();
 					} catch (InvalidActivityException e) {
 						throw new PacketRejectedException();
 					} catch (AccessDeniedException e) {
@@ -106,5 +127,39 @@ public class MessageEventInterceptor implements PacketInterceptor {
 			}
 
 		}
+	}
+	
+	/*Returns a Set of the FullJids for all connected resources of a given BareJid */
+	private Set<JID> getFullJIDs(String jid)
+	{
+		JID recipientJID=new JID(jid); 		
+		Set<JID> recipientFullJIDs = new HashSet<JID>();
+	        if (XMPPServer.getInstance().isLocal(recipientJID)) {        	
+	            if (recipientJID.getResource() == null) {
+	                for (ClientSession clientSession : SessionManager.getInstance().getSessions(recipientJID.getNode())) {
+	                 int prior=clientSession.getPresence().getPriority();
+	                 if (prior>=0){	                	 	                	 	               
+	                	 recipientFullJIDs.add(clientSession.getAddress());	                	
+	                 }	                
+	                }
+	            }	      
+	        }
+	        
+	        else {
+	            // Since recipientJID is not local, try to get presence info from cached known remote
+	            // presences.
+	            Map<String, Set<JID>> knownRemotePresences = XMPPServer.getInstance().getIQPEPHandler().getKnownRemotePresenes();
+
+	            Set<JID> remotePresenceSet = knownRemotePresences.get(XMPPServer.getInstance().getIQPEPHandler().getPEPService(jid).getAddress().toBareJID());
+	            if (remotePresenceSet != null) {
+	                for (JID remotePresence : remotePresenceSet) {
+	                    if (recipientJID.toBareJID().equals(remotePresence.toBareJID())) {
+	                        recipientFullJIDs.add(remotePresence);
+	                    }
+	                }
+	            }
+	        }
+	        
+	        return recipientFullJIDs;
 	}
 }

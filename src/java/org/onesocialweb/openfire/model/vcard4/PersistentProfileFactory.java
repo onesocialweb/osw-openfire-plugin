@@ -18,11 +18,16 @@
 package org.onesocialweb.openfire.model.vcard4;
 
 import org.onesocialweb.model.vcard4.BirthdayField;
+import org.onesocialweb.model.vcard4.EmailField;
 import org.onesocialweb.model.vcard4.FullNameField;
 import org.onesocialweb.model.vcard4.GenderField;
+import org.onesocialweb.model.vcard4.NameField;
 import org.onesocialweb.model.vcard4.NoteField;
 import org.onesocialweb.model.vcard4.PhotoField;
 import org.onesocialweb.model.vcard4.Profile;
+import org.onesocialweb.model.vcard4.TelField;
+import org.onesocialweb.model.vcard4.TimeZoneField;
+import org.onesocialweb.model.vcard4.URLField;
 import org.onesocialweb.model.vcard4.VCard4Factory;
 
 public class PersistentProfileFactory extends VCard4Factory {
@@ -50,6 +55,31 @@ public class PersistentProfileFactory extends VCard4Factory {
 	@Override
 	public PhotoField photo() {
 		return new PersistentPhotoField();
+	}
+	
+	@Override
+	public EmailField email() {
+		return new PersistentEmailField();
+	}
+	
+	@Override
+	public URLField url() {
+		return new PersistentUrlField();
+	}
+	
+	@Override
+	public NameField name() {
+		return new PersistentNameField();
+	}
+	
+	@Override
+	public TimeZoneField timeZone() {
+		return new PersistentTimeZoneField();
+	}
+	
+	@Override
+	public TelField tel() {
+		return new PersistentTelField();
 	}
 
 	@Override
