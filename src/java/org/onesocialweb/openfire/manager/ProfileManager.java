@@ -16,11 +16,21 @@
  */
 package org.onesocialweb.openfire.manager;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.persistence.EntityManager;
 
 import org.jivesoftware.openfire.user.UserNotFoundException;
+import org.onesocialweb.model.acl.AclAction;
+import org.onesocialweb.model.acl.AclFactory;
+import org.onesocialweb.model.acl.AclRule;
+import org.onesocialweb.model.vcard4.Field;
 import org.onesocialweb.model.vcard4.Profile;
+import org.onesocialweb.model.vcard4.exception.CardinalityException;
+import org.onesocialweb.model.vcard4.exception.UnsupportedFieldException;
 import org.onesocialweb.openfire.OswPlugin;
+import org.onesocialweb.openfire.model.acl.PersistentAclFactory;
 import org.onesocialweb.openfire.model.vcard4.PersistentProfile;
 
 /**
@@ -36,6 +46,8 @@ public class ProfileManager {
 	 * Singleton: keep a static reference to teh only instance
 	 */
 	private static ProfileManager instance;
+	
+	private final AclFactory aclFactory;
 
 	public static ProfileManager getInstance() {
 		if (instance == null) {
@@ -66,8 +78,34 @@ public class ProfileManager {
 			if (requestorJID.equals(targetJID)) {
 				return profile;
 			} else {
-				// TODO We should filter all fields that the requestor is not
+				// We should filter all fields that the requestor is not
 				// supposed to see and strip all data related to ACLs.
+				
+				final AclAction viewAction = aclFactory.aclAction(AclAction.ACTION_VIEW, AclAction.PERMISSION_GRANT);
+				List<Field> fields =profile.getFields();
+				List<Field> canSeefields= new ArrayList<Field>();
+				for (Field field: fields)
+				{
+					boolean canSee=false;
+					List<AclRule> rules= field.getAclRules();
+					for (AclRule rule: rules)
+					{
+						if ((rule.hasAction(viewAction)) && (AclManager.canSee(targetJID, rule, requestorJID)))						
+							canSee=true;										
+					}
+					if (canSee)
+						canSeefields.add(field);						
+				}
+				
+				profile.removeAll();				
+				try{
+					for (Field f: canSeefields){						
+						f.setAclRules(new ArrayList<AclRule>());					
+						profile.addField(f);
+					}				
+				}catch (CardinalityException ce){
+				}catch (UnsupportedFieldException ufe){					
+				}					
 				return profile;
 			}
 		} else {
@@ -112,5 +150,6 @@ public class ProfileManager {
 	 */
 	private ProfileManager() {
 		//
+		aclFactory = new PersistentAclFactory();
 	}
 }

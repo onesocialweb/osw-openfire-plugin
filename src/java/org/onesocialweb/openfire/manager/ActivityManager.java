@@ -19,23 +19,17 @@ package org.onesocialweb.openfire.manager;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import javax.activity.InvalidActivityException;
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 
 import org.dom4j.dom.DOMDocument;
-import org.jivesoftware.openfire.SessionManager;
 import org.jivesoftware.openfire.XMPPServer;
 import org.jivesoftware.openfire.roster.Roster;
 import org.jivesoftware.openfire.roster.RosterItem;
 import org.jivesoftware.openfire.roster.RosterManager;
-import org.jivesoftware.openfire.session.ClientSession;
 import org.jivesoftware.openfire.user.User;
 import org.jivesoftware.openfire.user.UserManager;
 import org.jivesoftware.openfire.user.UserNotFoundException;
@@ -321,7 +315,7 @@ public class ActivityManager {
 		final ActivityDomWriter writer = new DefaultActivityDomWriter();
 		final XMPPServer server = XMPPServer.getInstance();
 		final List<Subscription> subscriptions = getSubscribers(fromJID);
-		final Roster roster = XMPPServer.getInstance().getRosterManager().getRoster(new JID(fromJID).getNode());
+	//	final Roster roster = XMPPServer.getInstance().getRosterManager().getRoster(new JID(fromJID).getNode());
 		final DOMDocument domDocument = new DOMDocument();
 
 		// Prepare the message
@@ -351,7 +345,7 @@ public class ActivityManager {
 		// Send to all subscribers
 		for (Subscription activitySubscription : subscriptions) {
 			String recipientJID = activitySubscription.getSubscriber();
-			if (!canSee(entry, roster, recipientJID)) {
+			if (!canSee(fromJID, entry, recipientJID)) {
 				continue;
 			}
 			alreadySent.add(recipientJID);						
@@ -364,7 +358,7 @@ public class ActivityManager {
 			for (AtomReplyTo recipient : entry.getRecipients()) {
 				//TODO This is dirty, the recipient should be an IRI etc...
 				String recipientJID = recipient.getHref();  
-				if (!alreadySent.contains(recipientJID) && canSee(entry, roster, recipientJID)) {
+				if (!alreadySent.contains(recipientJID) && canSee(fromJID, entry, recipientJID)) {
 					alreadySent.add(fromJID);
 					
 					message.setTo(recipientJID);
@@ -390,7 +384,7 @@ public class ActivityManager {
 		return new ArrayList<String>();
 	}
 
-	private boolean canSee(ActivityEntry entry, Roster roster, String viewer) {
+	private boolean canSee(String fromJID, ActivityEntry entry, String viewer) throws UserNotFoundException  {
 		// Get a view action
 		final AclAction viewAction = aclFactory.aclAction(AclAction.ACTION_VIEW, AclAction.PERMISSION_GRANT);
 		AclRule rule = null;
@@ -404,37 +398,9 @@ public class ActivityManager {
 		// If no view action was found, we consider it is denied
 		if (rule == null)
 			return false;
-
-		// Get the subjects, if none then access denied
-		final List<AclSubject> subjects = rule.getSubjects();
-		if (subjects == null)
-			return false;
-
-		// Get the roster entry that match the viewer, this is only
-		// used for the groups based matches
-		RosterItem rosterItem = null;
-		try {
-			rosterItem = roster.getRosterItem(new JID(viewer));
-		} catch (UserNotFoundException e) {
-		}
-
-		// Iterate through the subjects and hope for the best
-		for (AclSubject aclSubject : subjects) {
-			if (aclSubject.getType().equals(AclSubject.EVERYONE)) {
-				return true;
-			} else if (aclSubject.getType().equals(AclSubject.GROUP)) {
-				if (rosterItem != null && rosterItem.getGroups().contains(aclSubject.getName())) {
-					return true;
-				}
-			} else if (aclSubject.getType().equals(AclSubject.PERSON)) {
-				if (viewer.equals(aclSubject.getName())) {
-					return true;
-				}
-			}
-		}
-
-		// Still here ? Then we did not find a match and it is a deny
-		return false;
+		
+		return AclManager.canSee(fromJID, rule, viewer);
+		
 	}
 
 	/**
