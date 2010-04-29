@@ -27,6 +27,7 @@ import javax.persistence.Query;
 
 import org.dom4j.dom.DOMDocument;
 import org.jivesoftware.openfire.XMPPServer;
+import org.jivesoftware.openfire.auth.UnauthorizedException;
 import org.jivesoftware.openfire.roster.Roster;
 import org.jivesoftware.openfire.roster.RosterItem;
 import org.jivesoftware.openfire.roster.RosterManager;
@@ -127,6 +128,41 @@ public class ActivityManager {
 
 		// Broadcast the notifications
 		notify(userJID, entry);
+	}
+	
+	public void deleteActivity(String fromJID, String activityId) throws UnauthorizedException {
+		
+		final EntityManager em = OswPlugin.getEmFactory().createEntityManager();
+		em.getTransaction().begin();
+		
+		PersistentActivityEntry activity= em.find(PersistentActivityEntry.class, activityId);
+		
+		if ((activity==null) || (!activity.getActor().getUri().equalsIgnoreCase(fromJID)))
+			throw new UnauthorizedException();
+		
+		em.remove(activity);
+		
+		em.getTransaction().commit();
+		em.close();
+		
+		notifyDelete(fromJID, activityId);
+	}
+	
+	public void deleteMessage(String activityId)  {
+		
+		final EntityManager em = OswPlugin.getEmFactory().createEntityManager();
+		em.getTransaction().begin();
+		
+		Query query = em.createQuery("SELECT x FROM Messages x WHERE x.activity.id = ?1");
+		query.setParameter(1, activityId);		
+		List<ActivityMessage> messages = query.getResultList();
+		for (ActivityMessage message:messages){
+			em.remove(message);
+		}
+
+		em.getTransaction().commit();
+		em.close();
+
 	}
 
 	/**
@@ -369,6 +405,44 @@ public class ActivityManager {
 	}
 	
 
+	private void notifyDelete(String fromJID, String activityId) {
+
+		
+		final XMPPServer server = XMPPServer.getInstance();
+		final List<Subscription> subscriptions = getSubscribers(fromJID);
+	
+		// Prepare the message
+		
+		final Message message = new Message();
+		message.setFrom(fromJID);
+		message.setBody("Delete activity: " + activityId);
+		message.setType(Message.Type.headline);
+		
+		org.dom4j.Element eventElement = message.addChildElement("event", "http://jabber.org/protocol/pubsub#event");
+		org.dom4j.Element itemsElement = eventElement.addElement("items");
+		itemsElement.addAttribute("node", PEPActivityHandler.NODE);
+		org.dom4j.Element retractElement = itemsElement.addElement("retract");
+		retractElement.addAttribute("id", activityId);
+		
+
+		// Keep a list of people we sent it to avoid duplicates
+		List<String> alreadySent = new ArrayList<String>();
+		
+		// Send to this user
+		alreadySent.add(fromJID);
+		message.setTo(fromJID);
+		server.getMessageRouter().route(message);	
+						
+		// Send to all subscribers
+		for (Subscription activitySubscription : subscriptions) {
+			String recipientJID = activitySubscription.getSubscriber();			
+			alreadySent.add(recipientJID);						
+			message.setTo(recipientJID);
+			server.getMessageRouter().route(message);	
+		}			
+		
+	}
+	
 	private List<String> getGroups(String ownerJID, String userJID) {
 		RosterManager rosterManager = XMPPServer.getInstance().getRosterManager();
 		Roster roster;
