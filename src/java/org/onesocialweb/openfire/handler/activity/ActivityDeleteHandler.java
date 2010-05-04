@@ -77,6 +77,13 @@ public class ActivityDeleteHandler  extends PEPCommandHandler {
 			Element retractElement = pubsubElement.element("retract");
 			Element item = (Element)retractElement.elements("item").get(0);
 			String activityId=reader.readActivityId(new ElementAdapter(item));
+			
+			if ((activityId==null) || (activityId.length()==0)){						
+					IQ result = IQ.createResultIQ(packet);
+					result.setChildElement(packet.getChildElement().createCopy());
+					result.setError(PacketError.Condition.item_not_found);
+					return result;
+			}
 
 			activityManager.deleteActivity(sender.toBareJID(), activityId);
 
