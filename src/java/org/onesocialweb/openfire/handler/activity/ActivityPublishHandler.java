@@ -109,8 +109,12 @@ public class ActivityPublishHandler extends PEPCommandHandler {
 					ActivityEntry activity = reader.readEntry(new ElementAdapter(entry));
 					Log.debug("ActivityPublishHandler received activity: " + activity);
 					try {
-						activityManager.publishActivity(sender.toBareJID(), activity);
-						itemIds.add(activity.getId());
+						if ((activity.getId()!=null) && (activity.getId().length()!=0))
+							activityManager.updateActivity(sender.toBareJID(), activity);
+						else{
+							activityManager.publishActivity(sender.toBareJID(), activity);
+							itemIds.add(activity.getId());
+						}
 					} catch (UserNotFoundException e) {}
 				}
 			}

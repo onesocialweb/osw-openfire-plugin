@@ -54,6 +54,7 @@ import org.onesocialweb.openfire.model.Subscription;
 import org.onesocialweb.openfire.model.acl.PersistentAclFactory;
 import org.onesocialweb.openfire.model.activity.PersistentActivityEntry;
 import org.onesocialweb.openfire.model.activity.PersistentActivityFactory;
+import org.onesocialweb.openfire.model.vcard4.PersistentProfile;
 import org.onesocialweb.xml.dom.ActivityDomWriter;
 import org.onesocialweb.xml.dom.imp.DefaultActivityDomWriter;
 import org.onesocialweb.xml.namespace.Atom;
@@ -120,6 +121,47 @@ public class ActivityManager {
 		for (ActivityObject object : entry.getObjects()) {
 			object.setId(DefaultAtomHelper.generateId());
 		}
+		entry.setActor(actor);
+		entry.setPublished(Calendar.getInstance().getTime());
+		em.persist(entry);
+		em.getTransaction().commit();
+		em.close();
+
+		// Broadcast the notifications
+		notify(userJID, entry);
+	}
+	
+	/**
+	 * Updates an activity in the activity stream of the given user.
+	 * activity-actor element is overwrittern using the user profile data to
+	 * avoid spoofing. Notifications messages are sent to the users subscribed
+	 * to this user activities.
+	 * 
+	 * @param user
+	 *            The user who the activity belongs to
+	 * @param entry
+	 *            The activity entry to update
+	 * @throws UserNotFoundException
+	 */
+	public void updateActivity(String userJID, ActivityEntry entry) throws UserNotFoundException, UnauthorizedException {
+		// Overide the actor to avoid spoofing
+		User user = UserManager.getInstance().getUser(new JID(userJID).getNode());
+		ActivityActor actor = activityFactory.actor();
+		actor.setUri(userJID);
+		actor.setName(user.getName());
+		actor.setEmail(user.getEmail());
+		
+		// Persist the activities
+		final EntityManager em = OswPlugin.getEmFactory().createEntityManager();
+		em.getTransaction().begin();
+		PersistentActivityEntry oldEntry=em.find(PersistentActivityEntry.class, entry.getId());
+		
+		if ((oldEntry==null) || (!oldEntry.getActor().getUri().equalsIgnoreCase(userJID)))
+			throw new UnauthorizedException();
+		
+		if (oldEntry!=null)
+			em.remove(oldEntry);
+		
 		entry.setActor(actor);
 		entry.setPublished(Calendar.getInstance().getTime());
 		em.persist(entry);
@@ -241,6 +283,18 @@ public class ActivityManager {
 		} else {
 			message.setActivity(activity);
 		}
+		
+		//in case of an update the message will already exist in the DB
+		Query query = em.createQuery("SELECT x FROM Messages x WHERE x.activity.id = ?1");
+		query.setParameter(1, activity.getId());		
+		List<ActivityMessage> messages = query.getResultList();
+		
+		em.getTransaction().begin();
+		for (ActivityMessage oldMessage:messages){
+			if (oldMessage.getRecipient().equalsIgnoreCase(localJID))
+				em.remove(oldMessage);
+		}
+		em.getTransaction().commit();
 
 		// We go ahead and post the message to the recipient mailbox
 		em.getTransaction().begin();
