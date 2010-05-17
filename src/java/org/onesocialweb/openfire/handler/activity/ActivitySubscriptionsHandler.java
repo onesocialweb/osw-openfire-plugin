@@ -52,14 +52,19 @@ public class ActivitySubscriptionsHandler extends PEPCommandHandler {
 	@SuppressWarnings( { "deprecation"})
 	@Override
 	public IQ handleIQ(IQ packet) throws UnauthorizedException {
-		final JID sender = packet.getFrom();
-		final JID recipient = packet.getTo();
+		JID sender = packet.getFrom();
+		JID recipient = packet.getTo();
 
 		// Process the request inside a try/catch so that unhandled exceptions
 		// (oufofbounds etc...) can trigger a server error and we can send a
 		// error result packet
 		try {
 
+			// If no recipient, we assume the recipient is the sender
+			if (recipient == null) {
+				recipient = sender;
+			}
+			
 			// A valid request is an IQ of type get, for a valid and local recipient
 			if (!(packet.getType().equals(IQ.Type.get) && recipient != null && recipient.getNode() != null 
 					&& userManager.isRegisteredUser(recipient.getNode()))) {
