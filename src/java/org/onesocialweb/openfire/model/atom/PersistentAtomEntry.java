@@ -60,6 +60,13 @@ public class PersistentAtomEntry extends PersistentAtomCommon implements AtomEnt
 	
 	@Id
 	private String id;
+	
+	@Basic
+	private String parentId=null;
+	
+	@Basic
+	private String parentJID=null;
+	
 
 	@Basic
 	@Temporal(TemporalType.TIMESTAMP)
@@ -105,6 +112,27 @@ public class PersistentAtomEntry extends PersistentAtomCommon implements AtomEnt
 	@Override
 	public void addRecipient(AtomReplyTo recipient) {
 		this.recipients.add(recipient);
+	}
+	
+	
+	@Override
+	public String getParentId() {
+		return parentId;
+	}
+
+	@Override
+	public void setParentId(String parentId) {
+		this.parentId = parentId;
+	}
+	
+	@Override
+	public String getParentJID() {
+		return parentJID;
+	}
+
+	@Override
+	public void setParentJID(String parentJID) {
+		this.parentJID = parentJID;
 	}
 
 	@Override
@@ -166,6 +194,24 @@ public class PersistentAtomEntry extends PersistentAtomCommon implements AtomEnt
 	public Date getUpdated() {
 		return updated;
 	}
+	
+	@Override
+	public AtomLink getRepliesLink(){
+		for (AtomLink link: links){
+			if (link.getRel().equalsIgnoreCase("replies"))
+				return link;
+		}
+		return null;
+	}
+	
+	@Override
+	public AtomReplyTo getReplyTo(){
+		for (AtomReplyTo reply: recipients){
+			if (reply.getRef()!=null && (reply.getRef().length()>0))
+				return reply;
+		}
+		return null;
+	}
 
 	@Override
 	public boolean hasAuthors() {
@@ -190,6 +236,18 @@ public class PersistentAtomEntry extends PersistentAtomCommon implements AtomEnt
 	@Override
 	public boolean hasRecipients() {
 		return (recipients != null && recipients.size() > 0);
+	}
+	
+	@Override
+	public boolean hasReplies() {
+		boolean result=false;
+		if (links == null || links.size() < 0)
+			return result;
+		for (AtomLink link: links){
+			if (link.getRel().equalsIgnoreCase("replies"))
+				result= true;
+		}
+		return result;
 	}
 
 	@Override
@@ -316,7 +374,7 @@ public class PersistentAtomEntry extends PersistentAtomCommon implements AtomEnt
 	public void setUpdated(final Date updated) {
 		this.updated = updated;
 	}
-
+	
 	@Override
 	public String toString() {
 		StringBuffer buffer = new StringBuffer();

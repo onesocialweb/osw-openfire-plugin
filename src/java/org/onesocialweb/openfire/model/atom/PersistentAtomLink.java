@@ -41,6 +41,19 @@ public class PersistentAtomLink extends PersistentAtomCommon implements AtomLink
 
 	@Basic
 	private String length;
+	
+	@Basic
+	private int count;
+
+	@Override
+	public int getCount() {
+		return count;
+	}
+
+	@Override
+	public void setCount(int count) {
+		this.count = count;
+	}
 
 	@Override
 	public String getHref() {

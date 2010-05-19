@@ -53,6 +53,8 @@ public class PersistentActivityEntry extends PersistentAtomEntry implements Acti
 	@OneToMany(cascade=CascadeType.ALL, targetEntity=PersistentActivityVerb.class, fetch=FetchType.EAGER)
 	private List<ActivityVerb> verbs = new ArrayList<ActivityVerb>();
 	
+		
+
 	@Override
 	public void addObject(ActivityObject object) {
 		this.objects.add(object);

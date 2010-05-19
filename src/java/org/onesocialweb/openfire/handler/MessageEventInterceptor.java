@@ -26,10 +26,12 @@ import javax.activity.InvalidActivityException;
 import org.dom4j.Element;
 import org.jivesoftware.openfire.SessionManager;
 import org.jivesoftware.openfire.XMPPServer;
+import org.jivesoftware.openfire.auth.UnauthorizedException;
 import org.jivesoftware.openfire.interceptor.PacketInterceptor;
 import org.jivesoftware.openfire.interceptor.PacketRejectedException;
 import org.jivesoftware.openfire.session.ClientSession;
 import org.jivesoftware.openfire.session.Session;
+import org.jivesoftware.openfire.user.UserNotFoundException;
 import org.jivesoftware.util.Log;
 import org.onesocialweb.model.activity.ActivityEntry;
 import org.onesocialweb.model.relation.Relation;
@@ -100,18 +102,19 @@ public class MessageEventInterceptor implements PacketInterceptor {
 				List<Element> items=(List<Element>) itemsElement.elements("item"); 
 				if ((items!=null) && (items.size()!=0)){
 					for (Element itemElement :items) {
-						ActivityEntry activity = reader
-						.readEntry(new ElementAdapter(itemElement
-								.element("entry")));
-						try {
-
-							ActivityManager.getInstance().handleMessage(
-									fromJID.toBareJID(), toJID.toBareJID(),
-									activity);							
-							
+						ActivityEntry activity = reader.readEntry(new ElementAdapter(itemElement.element("entry")));
+						try {							
+							if (activity.getParentId()!=null)
+								ActivityManager.getInstance().handleComment(fromJID.toBareJID(), toJID.toBareJID(),activity);
+							else 
+								ActivityManager.getInstance().handleMessage(fromJID.toBareJID(), toJID.toBareJID(),activity);														
+						} catch (UserNotFoundException e){
+							throw new PacketRejectedException();
 						} catch (InvalidActivityException e) {
 							throw new PacketRejectedException();
 						} catch (AccessDeniedException e) {
+							throw new PacketRejectedException();
+						} catch (UnauthorizedException e){
 							throw new PacketRejectedException();
 						}
 					}

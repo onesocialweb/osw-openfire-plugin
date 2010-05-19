@@ -42,6 +42,8 @@ import org.onesocialweb.model.activity.ActivityActor;
 import org.onesocialweb.model.activity.ActivityEntry;
 import org.onesocialweb.model.activity.ActivityFactory;
 import org.onesocialweb.model.activity.ActivityObject;
+import org.onesocialweb.model.atom.AtomFactory;
+import org.onesocialweb.model.atom.AtomLink;
 import org.onesocialweb.model.atom.AtomReplyTo;
 import org.onesocialweb.model.atom.DefaultAtomHelper;
 import org.onesocialweb.openfire.OswPlugin;
@@ -54,7 +56,7 @@ import org.onesocialweb.openfire.model.Subscription;
 import org.onesocialweb.openfire.model.acl.PersistentAclFactory;
 import org.onesocialweb.openfire.model.activity.PersistentActivityEntry;
 import org.onesocialweb.openfire.model.activity.PersistentActivityFactory;
-import org.onesocialweb.openfire.model.vcard4.PersistentProfile;
+import org.onesocialweb.openfire.model.atom.PersistentAtomFactory;
 import org.onesocialweb.xml.dom.ActivityDomWriter;
 import org.onesocialweb.xml.dom.imp.DefaultActivityDomWriter;
 import org.onesocialweb.xml.namespace.Atom;
@@ -93,6 +95,8 @@ public class ActivityManager {
 	private final ActivityFactory activityFactory;
 
 	private final AclFactory aclFactory;
+	
+	private final AtomFactory atomFactory;
 
 	/**
 	 * Publish a new activity to the activity stream of the given user.
@@ -172,6 +176,42 @@ public class ActivityManager {
 		notify(userJID, entry);
 	}
 	
+	
+	/**
+	 * Updates an activity in the activity stream of the given user.
+	 * activity-actor element is overwrittern using the user profile data to
+	 * avoid spoofing. Notifications messages are sent to the users subscribed
+	 * to this user activities.
+	 * 
+	 * @param user
+	 *            The user who the activity belongs to
+	 * @param entry
+	 *            The activity entry to update
+	 * @throws UserNotFoundException
+	 */
+	public void commentActivity(String userJID, ActivityEntry commentEntry) throws UserNotFoundException, UnauthorizedException {
+		// Overide the actor to avoid spoofing
+		User user = UserManager.getInstance().getUser(new JID(userJID).getNode());
+		ActivityActor actor = activityFactory.actor();
+		actor.setUri(userJID);
+		actor.setName(user.getName());
+		actor.setEmail(user.getEmail());
+		
+	
+		final EntityManager em = OswPlugin.getEmFactory().createEntityManager();
+		em.getTransaction().begin();
+				
+		//validate that we have visibility of the original post...
+		String idParent=commentEntry.getParentId();		
+		PersistentActivityEntry originalEntry=em.find(PersistentActivityEntry.class, idParent);		
+		if (originalEntry==null) 
+			throw new UnauthorizedException();
+				
+		
+		// Broadcast a notification to the owner of the original post...
+		notifyComment(userJID, originalEntry.getActor().getUri() , commentEntry);
+	}
+	
 	public void deleteActivity(String fromJID, String activityId) throws UnauthorizedException {
 		
 		final EntityManager em = OswPlugin.getEmFactory().createEntityManager();
@@ -182,6 +222,15 @@ public class ActivityManager {
 		if ((activity==null) || (!activity.getActor().getUri().equalsIgnoreCase(fromJID)))
 			throw new UnauthorizedException();
 		
+		if (activity.hasReplies()){
+			Query query = em.createQuery("SELECT x FROM ActivityEntry x WHERE x.parentId = ?1");
+			query.setParameter(1, activity.getId());		
+			List<ActivityEntry> replies = query.getResultList();
+			for (ActivityEntry reply:replies){
+				em.remove(reply);
+			}
+		}
+			
 		em.remove(activity);
 		
 		em.getTransaction().commit();
@@ -189,6 +238,8 @@ public class ActivityManager {
 		
 		notifyDelete(fromJID, activityId);
 	}
+	
+
 	
 	public void deleteMessage(String activityId)  {
 		
@@ -304,7 +355,60 @@ public class ActivityManager {
 				
 	}
 	
+	public synchronized void handleComment(String remoteJID, String localJID, ActivityEntry commentEntry) throws UnauthorizedException, UserNotFoundException, InvalidActivityException, AccessDeniedException {
 	
+		final EntityManager em = OswPlugin.getEmFactory().createEntityManager();
+		em.getTransaction().begin();
+		String parentJID=commentEntry.getParentJID();
+		
+		if (parentJID.equalsIgnoreCase(localJID)){
+			// store the comment
+			// first we update it... comment should already have all the links about
+			//being a reply...
+			commentEntry.setId(DefaultAtomHelper.generateId());
+			for (ActivityObject object : commentEntry.getObjects()) {
+				object.setId(DefaultAtomHelper.generateId());
+			}														
+			commentEntry.setPublished(Calendar.getInstance().getTime());
+			em.persist(commentEntry);
+		}
+		
+		
+		PersistentActivityEntry parentActivity = em.find(PersistentActivityEntry.class, commentEntry.getParentId());
+		
+		if (parentActivity==null)
+			throw new UnauthorizedException();	
+
+		
+		//update original...to increase the number of replies, unless the comment 
+		//already exists which means that the activity was already increased once
+		
+		String domainOrigin= new JID(parentActivity.getActor().getUri()).getDomain();
+		String domainLocal= new JID (localJID).getDomain();
+		
+
+		boolean alreadyUpdated=domainOrigin.equalsIgnoreCase(domainLocal) && !localJID.equalsIgnoreCase(parentActivity.getActor().getUri());
+		
+		if (!alreadyUpdated){
+			if (parentActivity.hasReplies()){
+				AtomLink repliesLink= parentActivity.getRepliesLink();	
+				parentActivity.removeLink(repliesLink);
+				repliesLink.setCount(repliesLink.getCount()+1);					
+				parentActivity.addLink(repliesLink);
+			}			
+			else
+				parentActivity.addLink(atomFactory.link(null, "replies", null, "application/atom+xml", 1));
+
+			em.remove(parentActivity);	
+			em.persist(parentActivity);		
+		}
+		em.getTransaction().commit();
+		em.close();
+		
+		if (localJID.equalsIgnoreCase(parentActivity.getActor().getUri()))
+			notify(localJID, commentEntry);
+		
+	}
 	
 	/**
 	 * Subscribe an entity to another entity activities.
@@ -428,9 +532,11 @@ public class ActivityManager {
 		List<String> alreadySent = new ArrayList<String>();
 		
 		// Send to this user
-		alreadySent.add(fromJID);
-		message.setTo(fromJID);
-		server.getMessageRouter().route(message);	
+		if (entry.getParentId()==null){		
+			alreadySent.add(fromJID);
+			message.setTo(fromJID);
+			server.getMessageRouter().route(message);
+		}
 						
 		// Send to all subscribers
 		for (Subscription activitySubscription : subscriptions) {
@@ -438,6 +544,7 @@ public class ActivityManager {
 			if (!canSee(fromJID, entry, recipientJID)) {
 				continue;
 			}
+		
 			alreadySent.add(recipientJID);						
 			message.setTo(recipientJID);
 			server.getMessageRouter().route(message);	
@@ -448,6 +555,8 @@ public class ActivityManager {
 			for (AtomReplyTo recipient : entry.getRecipients()) {
 				//TODO This is dirty, the recipient should be an IRI etc...
 				String recipientJID = recipient.getHref();  
+				if ((recipientJID==null) || (recipientJID.length()==0))
+					continue;
 				if (!alreadySent.contains(recipientJID) && canSee(fromJID, entry, recipientJID)) {
 					alreadySent.add(fromJID);
 					
@@ -456,6 +565,37 @@ public class ActivityManager {
 				}
 			}
 		}			
+	}
+	
+	private void notifyComment(String fromJID, String toJID, ActivityEntry entry) throws UserNotFoundException {
+		
+		// TODO We may want to do some cleaning of activities before
+		// forwarding them (e.g. remove the acl, it is no one business)
+		final ActivityDomWriter writer = new DefaultActivityDomWriter();
+		final XMPPServer server = XMPPServer.getInstance();
+	
+		final DOMDocument domDocument = new DOMDocument();
+
+		// Prepare the message
+		final Element entryElement = (Element) domDocument.appendChild(domDocument.createElementNS(Atom.NAMESPACE, Atom.ENTRY_ELEMENT));
+		writer.write(entry, entryElement);
+		domDocument.removeChild(entryElement);
+
+		final Message message = new Message();
+		message.setFrom(fromJID);
+		message.setBody("New activity: " + entry.getTitle());
+		message.setType(Message.Type.headline);
+		org.dom4j.Element eventElement = message.addChildElement("event", "http://jabber.org/protocol/pubsub#event");
+		org.dom4j.Element itemsElement = eventElement.addElement("items");
+		itemsElement.addAttribute("node", PEPActivityHandler.NODE);
+		org.dom4j.Element itemElement = itemsElement.addElement("item");
+		itemElement.addAttribute("id", entry.getId());
+		itemElement.add((org.dom4j.Element) entryElement);
+
+
+		message.setTo(toJID);
+		server.getMessageRouter().route(message);	
+		
 	}
 	
 
@@ -537,5 +677,6 @@ public class ActivityManager {
 	private ActivityManager() {
 		activityFactory = new PersistentActivityFactory();
 		aclFactory = new PersistentAclFactory();
+		atomFactory= new PersistentAtomFactory();
 	}
 }
