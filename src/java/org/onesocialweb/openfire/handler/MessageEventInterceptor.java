@@ -86,43 +86,53 @@ public class MessageEventInterceptor implements PacketInterceptor {
 
 			// That contains items
 			Element itemsElement = eventElement.element("items");
-			if (itemsElement == null || itemsElement.attribute("node") == null) {
+			if (itemsElement == null || itemsElement.attribute("node") == null) 
 				return;
-			}
 
 			// Relating to the microblogging node
 			if (itemsElement.attribute("node").getValue().equals(
 					PEPActivityHandler.NODE)) {
+								
+								
 				Log.debug("Processing an activity event from " + fromJID
 						+ " to " + toJID);
 				final ActivityDomReader reader = new PersistentActivityDomReader();
-				for (Element itemElement : (List<Element>) itemsElement
-						.elements("item")) {
-					ActivityEntry activity = reader
-							.readEntry(new ElementAdapter(itemElement
-									.element("entry")));
-					try {
+				List<Element> items=(List<Element>) itemsElement.elements("item"); 
+				if ((items!=null) && (items.size()!=0)){
+					for (Element itemElement :items) {
+						ActivityEntry activity = reader
+						.readEntry(new ElementAdapter(itemElement
+								.element("entry")));
+						try {
 
-						ActivityManager.getInstance().handleMessage(
-								fromJID.toBareJID(), toJID.toBareJID(),
-								activity);
-						Set<JID> recipientFullJIDs = getFullJIDs(toJID
-								.toBareJID());
-						Iterator<JID> it = recipientFullJIDs.iterator();
-						Message extendedMessage = message.createCopy();
-						while (it.hasNext()) {
-							String fullJid = it.next().toString();
-							extendedMessage.setTo(fullJid);
-							server.getMessageRouter().route(extendedMessage);
+							ActivityManager.getInstance().handleMessage(
+									fromJID.toBareJID(), toJID.toBareJID(),
+									activity);							
+							
+						} catch (InvalidActivityException e) {
+							throw new PacketRejectedException();
+						} catch (AccessDeniedException e) {
+							throw new PacketRejectedException();
 						}
-						throw new PacketRejectedException();
-					} catch (InvalidActivityException e) {
-						throw new PacketRejectedException();
-					} catch (AccessDeniedException e) {
-						throw new PacketRejectedException();
 					}
+				} else if (itemsElement.element("retract")!=null)
+				{					
+					Element retractElement = itemsElement.element("retract");
+					String activityId=reader.readActivityId(new ElementAdapter(retractElement));
+					ActivityManager.getInstance().deleteMessage(activityId);
 				}
+				Set<JID> recipientFullJIDs = getFullJIDs(toJID
+						.toBareJID());
+				Iterator<JID> it = recipientFullJIDs.iterator();
+				Message extendedMessage = message.createCopy();
+				while (it.hasNext()) {
+					String fullJid = it.next().toString();
+					extendedMessage.setTo(fullJid);
+					server.getMessageRouter().route(extendedMessage);
+				}
+				throw new PacketRejectedException();
 			}
+			
 			// or a relation event
 			else if (itemsElement.attribute("node").getValue().equals(
 					RelationManager.NODE)) {
@@ -141,6 +151,7 @@ public class MessageEventInterceptor implements PacketInterceptor {
 				}
 			}
 
+			else return;
 		}
 	}
 

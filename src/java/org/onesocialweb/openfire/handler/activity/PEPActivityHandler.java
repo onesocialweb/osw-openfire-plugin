@@ -52,6 +52,7 @@ public class PEPActivityHandler extends PEPNodeHandler {
 		this.server = server;
 		addHandler(new ActivityPublishHandler());
 		addHandler(new ActivityQueryHandler());
+		addHandler(new ActivityDeleteHandler());
 		addHandler(new ActivitySubscribeHandler());
 		addHandler(new ActivityUnsubscribeHandler());
 		addHandler(new ActivitySubscribersHandler());

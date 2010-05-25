@@ -26,6 +26,11 @@
     <class>org.onesocialweb.openfire.model.vcard4.PersistentGenderField</class>
     <class>org.onesocialweb.openfire.model.vcard4.PersistentNoteField</class>
     <class>org.onesocialweb.openfire.model.vcard4.PersistentPhotoField</class>
+    <class>org.onesocialweb.openfire.model.vcard4.PersistentNameField</class>
+    <class>org.onesocialweb.openfire.model.vcard4.PersistentUrlField</class>
+    <class>org.onesocialweb.openfire.model.vcard4.PersistentTelField</class>
+    <class>org.onesocialweb.openfire.model.vcard4.PersistentTimeZoneField</class>
+    <class>org.onesocialweb.openfire.model.vcard4.PersistentEmailField</class>
     <class>org.onesocialweb.openfire.model.vcard4.PersistentProfile</class>            
   </persistence-unit>
 </persistence>

@@ -19,23 +19,18 @@ package org.onesocialweb.openfire.manager;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import javax.activity.InvalidActivityException;
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 
 import org.dom4j.dom.DOMDocument;
-import org.jivesoftware.openfire.SessionManager;
 import org.jivesoftware.openfire.XMPPServer;
+import org.jivesoftware.openfire.auth.UnauthorizedException;
 import org.jivesoftware.openfire.roster.Roster;
 import org.jivesoftware.openfire.roster.RosterItem;
 import org.jivesoftware.openfire.roster.RosterManager;
-import org.jivesoftware.openfire.session.ClientSession;
 import org.jivesoftware.openfire.user.User;
 import org.jivesoftware.openfire.user.UserManager;
 import org.jivesoftware.openfire.user.UserNotFoundException;
@@ -59,6 +54,7 @@ import org.onesocialweb.openfire.model.Subscription;
 import org.onesocialweb.openfire.model.acl.PersistentAclFactory;
 import org.onesocialweb.openfire.model.activity.PersistentActivityEntry;
 import org.onesocialweb.openfire.model.activity.PersistentActivityFactory;
+import org.onesocialweb.openfire.model.vcard4.PersistentProfile;
 import org.onesocialweb.xml.dom.ActivityDomWriter;
 import org.onesocialweb.xml.dom.imp.DefaultActivityDomWriter;
 import org.onesocialweb.xml.namespace.Atom;
@@ -133,6 +129,82 @@ public class ActivityManager {
 
 		// Broadcast the notifications
 		notify(userJID, entry);
+	}
+	
+	/**
+	 * Updates an activity in the activity stream of the given user.
+	 * activity-actor element is overwrittern using the user profile data to
+	 * avoid spoofing. Notifications messages are sent to the users subscribed
+	 * to this user activities.
+	 * 
+	 * @param user
+	 *            The user who the activity belongs to
+	 * @param entry
+	 *            The activity entry to update
+	 * @throws UserNotFoundException
+	 */
+	public void updateActivity(String userJID, ActivityEntry entry) throws UserNotFoundException, UnauthorizedException {
+		// Overide the actor to avoid spoofing
+		User user = UserManager.getInstance().getUser(new JID(userJID).getNode());
+		ActivityActor actor = activityFactory.actor();
+		actor.setUri(userJID);
+		actor.setName(user.getName());
+		actor.setEmail(user.getEmail());
+		
+		// Persist the activities
+		final EntityManager em = OswPlugin.getEmFactory().createEntityManager();
+		em.getTransaction().begin();
+		PersistentActivityEntry oldEntry=em.find(PersistentActivityEntry.class, entry.getId());
+		
+		if ((oldEntry==null) || (!oldEntry.getActor().getUri().equalsIgnoreCase(userJID)))
+			throw new UnauthorizedException();
+		
+		if (oldEntry!=null)
+			em.remove(oldEntry);
+		
+		entry.setActor(actor);
+		entry.setPublished(Calendar.getInstance().getTime());
+		em.persist(entry);
+		em.getTransaction().commit();
+		em.close();
+
+		// Broadcast the notifications
+		notify(userJID, entry);
+	}
+	
+	public void deleteActivity(String fromJID, String activityId) throws UnauthorizedException {
+		
+		final EntityManager em = OswPlugin.getEmFactory().createEntityManager();
+		em.getTransaction().begin();
+		
+		PersistentActivityEntry activity= em.find(PersistentActivityEntry.class, activityId);
+		
+		if ((activity==null) || (!activity.getActor().getUri().equalsIgnoreCase(fromJID)))
+			throw new UnauthorizedException();
+		
+		em.remove(activity);
+		
+		em.getTransaction().commit();
+		em.close();
+		
+		notifyDelete(fromJID, activityId);
+	}
+	
+	public void deleteMessage(String activityId)  {
+		
+		final EntityManager em = OswPlugin.getEmFactory().createEntityManager();
+		em.getTransaction().begin();
+		
+		Query query = em.createQuery("SELECT x FROM Messages x WHERE x.activity.id = ?1");
+		query.setParameter(1, activityId);		
+		List<ActivityMessage> messages = query.getResultList();
+		for (ActivityMessage message:messages){
+			em.remove(message);
+		}
+
+		em.getTransaction().commit();
+		em.close();
+
 	}
 
 	/**
@@ -211,6 +283,18 @@ public class ActivityManager {
 		} else {
 			message.setActivity(activity);
 		}
+		
+		//in case of an update the message will already exist in the DB
+		Query query = em.createQuery("SELECT x FROM Messages x WHERE x.activity.id = ?1");
+		query.setParameter(1, activity.getId());		
+		List<ActivityMessage> messages = query.getResultList();
+		
+		em.getTransaction().begin();
+		for (ActivityMessage oldMessage:messages){
+			if (oldMessage.getRecipient().equalsIgnoreCase(localJID))
+				em.remove(oldMessage);
+		}
+		em.getTransaction().commit();
 
 		// We go ahead and post the message to the recipient mailbox
 		em.getTransaction().begin();
@@ -321,7 +405,7 @@ public class ActivityManager {
 		final ActivityDomWriter writer = new DefaultActivityDomWriter();
 		final XMPPServer server = XMPPServer.getInstance();
 		final List<Subscription> subscriptions = getSubscribers(fromJID);
-		final Roster roster = XMPPServer.getInstance().getRosterManager().getRoster(new JID(fromJID).getNode());
+	//	final Roster roster = XMPPServer.getInstance().getRosterManager().getRoster(new JID(fromJID).getNode());
 		final DOMDocument domDocument = new DOMDocument();
 
 		// Prepare the message
@@ -351,7 +435,7 @@ public class ActivityManager {
 		// Send to all subscribers
 		for (Subscription activitySubscription : subscriptions) {
 			String recipientJID = activitySubscription.getSubscriber();
-			if (!canSee(entry, roster, recipientJID)) {
+			if (!canSee(fromJID, entry, recipientJID)) {
 				continue;
 			}
 			alreadySent.add(recipientJID);						
@@ -364,7 +448,7 @@ public class ActivityManager {
 			for (AtomReplyTo recipient : entry.getRecipients()) {
 				//TODO This is dirty, the recipient should be an IRI etc...
 				String recipientJID = recipient.getHref();  
-				if (!alreadySent.contains(recipientJID) && canSee(entry, roster, recipientJID)) {
+				if (!alreadySent.contains(recipientJID) && canSee(fromJID, entry, recipientJID)) {
 					alreadySent.add(fromJID);
 					
 					message.setTo(recipientJID);
@@ -375,6 +459,44 @@ public class ActivityManager {
 	}
 	
 
+	private void notifyDelete(String fromJID, String activityId) {
+
+		
+		final XMPPServer server = XMPPServer.getInstance();
+		final List<Subscription> subscriptions = getSubscribers(fromJID);
+	
+		// Prepare the message
+		
+		final Message message = new Message();
+		message.setFrom(fromJID);
+		message.setBody("Delete activity: " + activityId);
+		message.setType(Message.Type.headline);
+		
+		org.dom4j.Element eventElement = message.addChildElement("event", "http://jabber.org/protocol/pubsub#event");
+		org.dom4j.Element itemsElement = eventElement.addElement("items");
+		itemsElement.addAttribute("node", PEPActivityHandler.NODE);
+		org.dom4j.Element retractElement = itemsElement.addElement("retract");
+		retractElement.addAttribute("id", activityId);
+		
+
+		// Keep a list of people we sent it to avoid duplicates
+		List<String> alreadySent = new ArrayList<String>();
+		
+		// Send to this user
+		alreadySent.add(fromJID);
+		message.setTo(fromJID);
+		server.getMessageRouter().route(message);	
+						
+		// Send to all subscribers
+		for (Subscription activitySubscription : subscriptions) {
+			String recipientJID = activitySubscription.getSubscriber();			
+			alreadySent.add(recipientJID);						
+			message.setTo(recipientJID);
+			server.getMessageRouter().route(message);	
+		}			
+		
+	}
+	
 	private List<String> getGroups(String ownerJID, String userJID) {
 		RosterManager rosterManager = XMPPServer.getInstance().getRosterManager();
 		Roster roster;
@@ -390,7 +512,7 @@ public class ActivityManager {
 		return new ArrayList<String>();
 	}
 
-	private boolean canSee(ActivityEntry entry, Roster roster, String viewer) {
+	private boolean canSee(String fromJID, ActivityEntry entry, String viewer) throws UserNotFoundException  {
 		// Get a view action
 		final AclAction viewAction = aclFactory.aclAction(AclAction.ACTION_VIEW, AclAction.PERMISSION_GRANT);
 		AclRule rule = null;
@@ -404,37 +526,9 @@ public class ActivityManager {
 		// If no view action was found, we consider it is denied
 		if (rule == null)
 			return false;
-
-		// Get the subjects, if none then access denied
-		final List<AclSubject> subjects = rule.getSubjects();
-		if (subjects == null)
-			return false;
-
-		// Get the roster entry that match the viewer, this is only
-		// used for the groups based matches
-		RosterItem rosterItem = null;
-		try {
-			rosterItem = roster.getRosterItem(new JID(viewer));
-		} catch (UserNotFoundException e) {
-		}
-
-		// Iterate through the subjects and hope for the best
-		for (AclSubject aclSubject : subjects) {
-			if (aclSubject.getType().equals(AclSubject.EVERYONE)) {
-				return true;
-			} else if (aclSubject.getType().equals(AclSubject.GROUP)) {
-				if (rosterItem != null && rosterItem.getGroups().contains(aclSubject.getName())) {
-					return true;
-				}
-			} else if (aclSubject.getType().equals(AclSubject.PERSON)) {
-				if (viewer.equals(aclSubject.getName())) {
-					return true;
-				}
-			}
-		}
-
-		// Still here ? Then we did not find a match and it is a deny
-		return false;
+		
+		return AclManager.canSee(fromJID, rule, viewer);
+		
 	}
 
 	/**
