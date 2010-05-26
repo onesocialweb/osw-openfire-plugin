@@ -19,6 +19,7 @@ package org.onesocialweb.openfire.manager;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 
 import javax.activity.InvalidActivityException;
@@ -54,7 +55,6 @@ import org.onesocialweb.openfire.model.Subscription;
 import org.onesocialweb.openfire.model.acl.PersistentAclFactory;
 import org.onesocialweb.openfire.model.activity.PersistentActivityEntry;
 import org.onesocialweb.openfire.model.activity.PersistentActivityFactory;
-import org.onesocialweb.openfire.model.vcard4.PersistentProfile;
 import org.onesocialweb.xml.dom.ActivityDomWriter;
 import org.onesocialweb.xml.dom.imp.DefaultActivityDomWriter;
 import org.onesocialweb.xml.namespace.Atom;
@@ -159,11 +159,14 @@ public class ActivityManager {
 		if ((oldEntry==null) || (!oldEntry.getActor().getUri().equalsIgnoreCase(userJID)))
 			throw new UnauthorizedException();
 		
-		if (oldEntry!=null)
-			em.remove(oldEntry);
+		
+		Date published=oldEntry.getPublished();
+		entry.setPublished(published);
+		entry.setUpdated(Calendar.getInstance().getTime());
+		
+		em.remove(oldEntry);
 		
 		entry.setActor(actor);
-		entry.setPublished(Calendar.getInstance().getTime());
 		em.persist(entry);
 		em.getTransaction().commit();
 		em.close();
@@ -271,7 +274,10 @@ public class ActivityManager {
 		ActivityMessage message = new PersistentActivityMessage();
 		message.setSender(remoteJID);
 		message.setRecipient(localJID);
-		message.setReceived(Calendar.getInstance().getTime());
+		//in case of an activity update we keep the received date as the date of
+		//original publish, otherwise the updated posts will start showing on top of
+		// the inbox..which we agreed we don't want...
+		message.setReceived(activity.getPublished());
 
 		// Search if the activity exists in the database
 		final EntityManager em = OswPlugin.getEmFactory().createEntityManager();
