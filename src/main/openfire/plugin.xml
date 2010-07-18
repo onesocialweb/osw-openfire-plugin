@@ -2,12 +2,12 @@
 
 <plugin>
    <class>org.onesocialweb.openfire.OswPlugin</class>
-   <name>Onesocialweb</name>
-   <description>Adds support for the Onesocialweb protocol extensions.</description>
+   <name>${pom.name}</name>
+   <description>${pom.description}</description>
    <author>Vodafone Group Services Limited.</author>
    <url>http://onesocialweb.org</url>
-   <version>0.6</version>
-   <date>1/4/2010</date>
+   <version>${pom.version}</version>
+   <date>${openfire-plugin.build.date}</date>
    <minServerVersion>3.6.4</minServerVersion>
-    <licenseType>apache</licenseType>
+   <licenseType>apache</licenseType>
 </plugin>
