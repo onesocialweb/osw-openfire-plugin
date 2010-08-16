@@ -88,6 +88,10 @@ public class ProfileManager {
 				{
 					boolean canSee=false;
 					List<AclRule> rules= field.getAclRules();
+					//this is a patch, so that the profile and its fields can be retrieved even when the acl rules where not set...
+					// currently the vodafonernd.com DB has many profiles without any ACL rules, which retrieves empty profiles...
+					if (rules.isEmpty())
+						canSee=true;
 					for (AclRule rule: rules)
 					{
 						if ((rule.hasAction(viewAction)) && (AclManager.canSee(targetJID, rule, requestorJID)))						

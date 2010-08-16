@@ -218,8 +218,12 @@ public class FileServlet extends HttpServlet {
 		super.init(config);
 
 		// Exclude this servlet from requering the user to login
-		AuthCheckFilter.addExclude("osw-openfire-plugin");
-	}
+		AuthCheckFilter.addExclude("osw-openfire-plugin");		
+		AuthCheckFilter.addExclude("osw-openfire-plugin/file/");
+		AuthCheckFilter.addExclude("osw-openfire-plugin/form.html");
+		
+		
+		}
 
 	private File getTempFolder() {	
 		final String tempPath = JiveGlobals.getProperty("onesocialweb.path.temp");
