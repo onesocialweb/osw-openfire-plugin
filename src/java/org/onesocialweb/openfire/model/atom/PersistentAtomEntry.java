@@ -62,10 +62,10 @@ public class PersistentAtomEntry extends PersistentAtomCommon implements AtomEnt
 	private String id;
 	
 	@Basic
-	private String parentId=null;
+	private String parentId;
 	
 	@Basic
-	private String parentJID=null;
+	private String parentJID;
 	
 
 	@Basic
@@ -118,16 +118,19 @@ public class PersistentAtomEntry extends PersistentAtomCommon implements AtomEnt
 	@Override
 	public String getParentId() {
 		return parentId;
+	
 	}
 
 	@Override
 	public void setParentId(String parentId) {
 		this.parentId = parentId;
+		
 	}
 	
 	@Override
 	public String getParentJID() {
 		return parentJID;
+		
 	}
 
 	@Override
