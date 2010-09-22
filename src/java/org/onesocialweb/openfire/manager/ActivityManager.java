@@ -556,7 +556,7 @@ public class ActivityManager {
 			for (AtomReplyTo recipient : entry.getRecipients()) {
 				//TODO This is dirty, the recipient should be an IRI etc...
 				String recipientJID = recipient.getHref();  
-				if ((recipientJID==null) || (recipientJID.length()==0))
+				if ((recipientJID==null) || (recipientJID.length()==0) || (recipientJID.contains(";node=urn:xmpp:microblog")))
 					continue;
 				if (!alreadySent.contains(recipientJID) && canSee(fromJID, entry, recipientJID)) {
 					alreadySent.add(fromJID);
