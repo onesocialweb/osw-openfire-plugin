@@ -97,6 +97,9 @@ public class ActivityManager {
 	private final AclFactory aclFactory;
 	
 	private final AtomFactory atomFactory;
+	
+	private List<String> repliesNotificationsReceived = new ArrayList<String>();
+	
 
 	/**
 	 * Publish a new activity to the activity stream of the given user.
@@ -384,11 +387,13 @@ public class ActivityManager {
 		//update original...to increase the number of replies, unless the comment 
 		//already exists which means that the activity was already increased once
 		
-		String domainOrigin= new JID(parentActivity.getActor().getUri()).getDomain();
-		String domainLocal= new JID (localJID).getDomain();
+	//	String domainOrigin= new JID(parentActivity.getActor().getUri()).getDomain();
+	//	String domainLocal= new JID (localJID).getDomain();
 		
-
-		boolean alreadyUpdated=domainOrigin.equalsIgnoreCase(domainLocal) && !localJID.equalsIgnoreCase(parentActivity.getActor().getUri());
+		boolean alreadyUpdated= false;
+		
+		if (repliesNotificationsReceived.contains(commentEntry.getId()))		
+			alreadyUpdated=true;
 		
 		if (!alreadyUpdated){
 			if (parentActivity.hasReplies()){
@@ -402,6 +407,7 @@ public class ActivityManager {
 
 			em.remove(parentActivity);	
 			em.persist(parentActivity);		
+			repliesNotificationsReceived.add(commentEntry.getId());
 		}
 		em.getTransaction().commit();
 		em.close();
