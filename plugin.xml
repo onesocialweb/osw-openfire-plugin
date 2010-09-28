@@ -6,8 +6,8 @@
    <description>Adds support for the Onesocialweb protocol extensions.</description>
    <author>Vodafone Group Services Limited.</author>
    <url>http://onesocialweb.org</url>
-   <version>0.6</version>
-   <date>1/4/2010</date>
+   <version>0.6.1</version>
+   <date>28/09/2010</date>
    <minServerVersion>3.6.4</minServerVersion>
     <licenseType>apache</licenseType>
 </plugin>
