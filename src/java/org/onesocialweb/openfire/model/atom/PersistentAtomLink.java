@@ -170,5 +170,10 @@ public class PersistentAtomLink extends PersistentAtomCommon implements AtomLink
 	public boolean hasType() {
 		return type != null;
 	}
+	
+	@Override
+	public boolean hasCount() {
+		return counter != 0;
+	}
 
 }

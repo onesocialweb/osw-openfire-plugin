@@ -26,6 +26,7 @@ import org.jivesoftware.openfire.IQHandlerInfo;
 import org.jivesoftware.openfire.XMPPServer;
 import org.jivesoftware.openfire.auth.UnauthorizedException;
 import org.jivesoftware.openfire.handler.IQHandler;
+import org.onesocialweb.openfire.handler.commenting.PEPCommentingHandler;
 import org.xmpp.packet.IQ;
 
 public class IQPEPHandler extends IQHandler {
@@ -73,6 +74,8 @@ public class IQPEPHandler extends IQHandler {
 	}
 
 	public PEPNodeHandler getHandler(String node) {
+		if  ((handlers.get(node) ==null) && (node.contains("replies:item=")))
+			addHandler(new PEPCommentingHandler(node));		
 		return handlers.get(node);
 	}
 

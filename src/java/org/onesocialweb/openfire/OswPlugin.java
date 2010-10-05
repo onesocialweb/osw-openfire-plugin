@@ -37,7 +37,7 @@ import org.jivesoftware.util.Log;
 import org.onesocialweb.openfire.handler.MessageEventInterceptor;
 import org.onesocialweb.openfire.handler.activity.IQSubscribeInterceptor;
 import org.onesocialweb.openfire.handler.activity.PEPActivityHandler;
-import org.onesocialweb.openfire.handler.commenting.PEPRepliesHandler;
+import org.onesocialweb.openfire.handler.commenting.PEPCommentingHandler;
 import org.onesocialweb.openfire.handler.inbox.PEPInboxHandler;
 import org.onesocialweb.openfire.handler.pep.IQPEPHandler;
 import org.onesocialweb.openfire.handler.profile.IQProfilePublishHandler;
@@ -117,7 +117,7 @@ public class OswPlugin implements Plugin {
 		// Add the PEP handlers, this will trigger their initialize method
 		iqPEPHandler.addHandler(new PEPActivityHandler());
 		iqPEPHandler.addHandler(new PEPInboxHandler());
-		iqPEPHandler.addHandler(new PEPRepliesHandler());
+		//iqPEPHandler.addHandler(new PEPCommentingHandler());
 
 		Log.info("OneSocialWeb plugin has been loaded");
 	}

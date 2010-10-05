@@ -1,20 +1,4 @@
-/*
- *  Copyright 2010 Vodafone Group Services Ltd.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *    
- */
-package org.onesocialweb.openfire.handler.activity;
+package org.onesocialweb.openfire.handler.commenting;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +11,7 @@ import org.jivesoftware.openfire.user.UserNotFoundException;
 import org.jivesoftware.util.LocaleUtils;
 import org.jivesoftware.util.Log;
 import org.onesocialweb.model.activity.ActivityEntry;
+import org.onesocialweb.openfire.handler.activity.PEPActivityHandler;
 import org.onesocialweb.openfire.handler.pep.PEPCommandHandler;
 import org.onesocialweb.openfire.manager.ActivityManager;
 import org.onesocialweb.openfire.model.activity.PersistentActivityDomReader;
@@ -36,23 +21,23 @@ import org.xmpp.packet.IQ;
 import org.xmpp.packet.JID;
 import org.xmpp.packet.PacketError;
 
-public class ActivityPublishHandler extends PEPCommandHandler {
+public class CommentPublishHandler extends PEPCommandHandler  {
 
 	public static final String COMMAND = "publish";
 	
 	private UserManager userManager;
-
 	private ActivityManager activityManager;
 	
-	public ActivityPublishHandler() {
-		super("OneSocialWeb - Publish activity handler");
+		
+	public CommentPublishHandler(){
+		super("OneSocialWeb - Handler for publishing comments");
 	}
 	
 	@Override
 	public String getCommand() {
 		return COMMAND;
 	}
-
+	
 	@SuppressWarnings( { "deprecation", "unchecked" })
 	@Override
 	public IQ handleIQ(IQ packet) throws UnauthorizedException {
@@ -107,17 +92,12 @@ public class ActivityPublishHandler extends PEPCommandHandler {
 				Element entry = item.element("entry");
 				if (entry != null) {
 					ActivityEntry activity = reader.readEntry(new ElementAdapter(entry));
-					Log.debug("ActivityPublishHandler received activity: " + activity);
+					Log.debug("CommentPublishHandler received comment: " + activity);
 					try {
-						if ((activity.getId()!=null) && (activity.getId().length()!=0))
-							activityManager.updateActivity(sender.toBareJID(), activity);
-					//	else if (activity.getParentId()!=null){						
-					//				activityManager.commentActivity(sender.toBareJID(), activity);									
-					//	}
-						else{							
-									activityManager.publishActivity(sender.toBareJID(), activity);
-									itemIds.add(activity.getId());
-							}														
+						if (activity.getParentId()!=null){						
+							activityManager.commentActivity(sender.toBareJID(), activity);									
+						}
+										
 					} catch (UserNotFoundException e) {}
 				}
 			}
@@ -141,7 +121,7 @@ public class ActivityPublishHandler extends PEPCommandHandler {
 			return result;
 		}
 	}
-
+	
 	@Override
 	public void initialize(XMPPServer server) {
 		super.initialize(server);

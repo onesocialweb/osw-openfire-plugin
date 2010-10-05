@@ -71,6 +71,7 @@ public class IQSubscribeInterceptor implements PacketInterceptor {
 				return;
 			}
 			
+			
 			// Then we keep track of the subscribe/unsubscribe request
 			if (commandElement.getName().equals("subscribe")) {
 				ActivityManager.getInstance().subscribe(fromJID.toBareJID(), toJID.toBareJID());

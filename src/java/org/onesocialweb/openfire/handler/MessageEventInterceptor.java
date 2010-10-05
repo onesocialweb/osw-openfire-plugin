@@ -38,6 +38,7 @@ import org.onesocialweb.model.relation.Relation;
 import org.onesocialweb.openfire.exception.AccessDeniedException;
 import org.onesocialweb.openfire.exception.InvalidRelationException;
 import org.onesocialweb.openfire.handler.activity.PEPActivityHandler;
+import org.onesocialweb.openfire.handler.commenting.PEPCommentingHandler;
 import org.onesocialweb.openfire.manager.ActivityManager;
 import org.onesocialweb.openfire.manager.RelationManager;
 import org.onesocialweb.openfire.model.activity.PersistentActivityDomReader;
@@ -92,10 +93,8 @@ public class MessageEventInterceptor implements PacketInterceptor {
 				return;
 
 			// Relating to the microblogging node
-			if (itemsElement.attribute("node").getValue().equals(
-					PEPActivityHandler.NODE)) {
-								
-								
+			if (itemsElement.attribute("node").getValue().equals(PEPActivityHandler.NODE)) {
+																
 				Log.debug("Processing an activity event from " + fromJID
 						+ " to " + toJID);
 				final ActivityDomReader reader = new PersistentActivityDomReader();
@@ -103,20 +102,13 @@ public class MessageEventInterceptor implements PacketInterceptor {
 				if ((items!=null) && (items.size()!=0)){
 					for (Element itemElement :items) {
 						ActivityEntry activity = reader.readEntry(new ElementAdapter(itemElement.element("entry")));
-						try {							
-							if (activity.getParentId()!=null)
-								ActivityManager.getInstance().handleComment(fromJID.toBareJID(), toJID.toBareJID(),activity);
-							else 
-								ActivityManager.getInstance().handleMessage(fromJID.toBareJID(), toJID.toBareJID(),activity);														
-						} catch (UserNotFoundException e){
-							throw new PacketRejectedException();
+						try {														
+							ActivityManager.getInstance().handleMessage(fromJID.toBareJID(), toJID.toBareJID(),activity);																				
 						} catch (InvalidActivityException e) {
 							throw new PacketRejectedException();
 						} catch (AccessDeniedException e) {
 							throw new PacketRejectedException();
-						} catch (UnauthorizedException e){
-							throw new PacketRejectedException();
-						}
+						} 
 					}
 				} else if (itemsElement.element("retract")!=null)
 				{					
@@ -137,8 +129,7 @@ public class MessageEventInterceptor implements PacketInterceptor {
 			}
 			
 			// or a relation event
-			else if (itemsElement.attribute("node").getValue().equals(
-					RelationManager.NODE)) {
+			else if (itemsElement.attribute("node").getValue().equals(RelationManager.NODE)) {
 				final RelationDomReader reader = new PersistentRelationDomReader();
 				for (Element itemElement : (List<Element>) itemsElement
 						.elements("item")) {
@@ -153,8 +144,29 @@ public class MessageEventInterceptor implements PacketInterceptor {
 					}
 				}
 			}
-
-			else return;
+			//or perhaps a reply ...			
+			else if (itemsElement.attribute("node").getValue().contains("urn:xmpp:microblog:0:replies")){			
+			 
+				final ActivityDomReader reader = new PersistentActivityDomReader();
+				List<Element> items=(List<Element>) itemsElement.elements("item"); 
+				if ((items!=null) && (items.size()!=0)){
+					for (Element itemElement :items) {
+						ActivityEntry activity = reader.readEntry(new ElementAdapter(itemElement.element("entry")));
+						if (activity.getParentId()!=null)
+							try{
+								ActivityManager.getInstance().handleComment(fromJID.toBareJID(), toJID.toBareJID(),activity);
+							} catch (UserNotFoundException e){
+								throw new PacketRejectedException();
+							} catch (InvalidActivityException e) {
+								throw new PacketRejectedException();
+							} catch (AccessDeniedException e) {
+								throw new PacketRejectedException();
+							} catch (UnauthorizedException e){
+								throw new PacketRejectedException();
+							}
+					}
+				}
+			}						
 		}
 	}
 

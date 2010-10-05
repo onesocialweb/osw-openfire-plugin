@@ -12,32 +12,38 @@ import org.onesocialweb.openfire.handler.pep.PEPNodeHandler;
 import org.xmpp.packet.IQ;
 import org.xmpp.packet.PacketError;
 
-public class PEPRepliesHandler extends PEPNodeHandler {
+public class PEPCommentingHandler extends PEPNodeHandler {
 
-	public static String NODE = "http://onesocialweb.org/spec/1.0/replies";
-	
+	public static String NODE = "urn:xmpp:microblog:0:replies";
 	private XMPPServer server;
-	
-
-	
 	private Map<String, PEPCommandHandler> handlers = new ConcurrentHashMap<String, PEPCommandHandler>();
-
-	public PEPRepliesHandler() {
-		super("Handler for Onesocialweb replies PEP node");
+		
+	
+	public PEPCommentingHandler(String node){
+		super("Handler for an item PEP node");
+		setNode(node);
 	}
 	
 	@Override
 	public String getNode() {
 		return NODE;
 	}
-
+	
+	
+	public  void setNode(String node) {
+		NODE = node;
+	}
+	
 	@Override
 	public void initialize(XMPPServer server) {
 		super.initialize(server);
 		this.server = server;
-		addHandler(new RepliesQueryHandler());
+		addHandler(new CommentPublishHandler());
+		addHandler(new CommentQueryHandler());
 	}
-
+	
+	
+	
 	@SuppressWarnings("unchecked")
 	@Override
 	public IQ handleIQ(IQ packet) throws UnauthorizedException {
@@ -61,16 +67,15 @@ public class PEPRepliesHandler extends PEPNodeHandler {
 		result.setError(PacketError.Condition.feature_not_implemented);
 		return result;
 	}
-
-	public void addHandler(PEPCommandHandler handler) {
+	
+	private void addHandler(PEPCommandHandler handler) {
 		handler.initialize(server);
 		handlers.put(handler.getCommand(), handler);
 	}
-
-	public PEPCommandHandler getHandler(String name) {
+	
+	private PEPCommandHandler getHandler(String name) {
 		return handlers.get(name);
 	}
 	
-
-
+	
 }
