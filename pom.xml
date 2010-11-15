@@ -164,6 +164,12 @@
   </dependencies>
   
   
+<pluginRepositories> 
+	<pluginRepository> 
+	<id>vodafonernd.com</id> 
+	<name>vodafonernd.com-releases</name> 
+	<url>http://vodafonernd.com/artifactory/libs-releases-local</url> 
+</pluginRepository> </pluginRepositories>
 
  
    <repositories>  
