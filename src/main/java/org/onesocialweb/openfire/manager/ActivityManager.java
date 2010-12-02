@@ -125,6 +125,7 @@ public class ActivityManager {
 		entry.setId(DefaultAtomHelper.generateId());
 		for (ActivityObject object : entry.getObjects()) {
 			object.setId(DefaultAtomHelper.generateId());
+			
 		}
 		entry.setActor(actor);
 		entry.setPublished(Calendar.getInstance().getTime());
@@ -166,6 +167,9 @@ public class ActivityManager {
 	
 		oldEntry.setActor(actor);
 		oldEntry.setUpdated(Calendar.getInstance().getTime());
+		for (ActivityObject obj: oldEntry.getObjects()){
+			obj.setUpdated(Calendar.getInstance().getTime());
+		}
 		oldEntry.setTitle(entry.getTitle());
 		
 		em.getTransaction().begin();
@@ -347,7 +351,9 @@ public class ActivityManager {
 				em.remove(oldMessage);
 		}
 		if (previousActivity != null){
-			message.setReceived(previousActivity.getPublished());
+			//due to popular demand, we will move to the top of the inbox any updated or commented message
+			//message.setReceived(previousActivity.getPublished());
+			message.setReceived(Calendar.getInstance().getTime());
 			em.remove(previousActivity);			
 		}
 		else
