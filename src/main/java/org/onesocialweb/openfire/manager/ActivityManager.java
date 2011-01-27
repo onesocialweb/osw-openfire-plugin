@@ -626,14 +626,19 @@ public class ActivityManager {
 		alreadySent.add(fromJID);
 		message.setTo(fromJID);
 		server.getMessageRouter().route(message);	
-						
+		
 		// Send to all subscribers
 		for (Subscription activitySubscription : subscriptions) {
-			String recipientJID = activitySubscription.getSubscriber();			
+			String recipientJID = activitySubscription.getSubscriber();
+			if (!canSee(fromJID, entry, recipientJID)) {
+				continue;
+			}
+		
 			alreadySent.add(recipientJID);						
 			message.setTo(recipientJID);
 			server.getMessageRouter().route(message);	
 		}
+
 		
 		if (entry.hasRecipients()) {
 			for (AtomReplyTo recipient : entry.getRecipients()) {
