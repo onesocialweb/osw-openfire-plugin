@@ -118,6 +118,8 @@ public class ActivityManager {
 		actor.setUri(userJID);
 		actor.setName(user.getName());
 		actor.setEmail(user.getEmail());
+		
+		addMentions(entry);
 
 		// Persist the activities
 		final EntityManager em = OswPlugin.getEmFactory().createEntityManager();
@@ -171,6 +173,8 @@ public class ActivityManager {
 			obj.setUpdated(Calendar.getInstance().getTime());
 		}
 		oldEntry.setTitle(entry.getTitle());
+		
+		addMentions(oldEntry);
 		
 		em.getTransaction().begin();
 		em.merge(oldEntry);		
@@ -351,6 +355,10 @@ public class ActivityManager {
 				em.remove(oldMessage);
 		}
 		if (previousActivity != null){
+			// In the case of an update, we check that the incoming message is really from the author of the 
+			// original post, i.e. the only one who has the rights to modify the activity.
+			if (!remoteJID.equalsIgnoreCase(previousActivity.getActor().getUri()))
+				throw new AccessDeniedException("User does not have the rights to modify this activity");
 			//due to popular demand, we will move to the top of the inbox any updated or commented message
 			//message.setReceived(previousActivity.getPublished());
 			message.setReceived(Calendar.getInstance().getTime());
@@ -689,6 +697,23 @@ public class ActivityManager {
 		
 		return AclManager.canSee(fromJID, rule, viewer);
 		
+	}
+	
+	private void addMentions(ActivityEntry entry){
+		String content= entry.getTitle();
+		List<String> jids= new ArrayList<String> (); 
+		if(content.indexOf("@")>=0) {
+			String[] tokens = content.split("\\s+");
+				for(int i=0; i<tokens.length; i++) {
+					if(tokens[i].startsWith("@")) {						
+						jids.add(tokens[i].substring(1));
+					}
+				}
+		}
+		
+		for (String jid: jids){
+			entry.addRecipient(atomFactory.reply(null, jid, null, null));
+		}
 	}
 
 	/**
