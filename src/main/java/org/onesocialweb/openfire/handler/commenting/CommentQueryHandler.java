@@ -59,19 +59,11 @@ public static final String COMMAND = "items";
 
 			// A valid submit request must contain at least one entry			
 			Element pubsubElement = packet.getChildElement();
-			Element itemsElement = pubsubElement.element("items");
-			List<Element> items = itemsElement.elements("item");
-			if (items == null || items.size() == 0) {
-				IQ result = IQ.createResultIQ(packet);
-				result.setChildElement(packet.getChildElement().createCopy());
-				result.setError(PacketError.Condition.bad_request);
-				return result;
-			}
+			Element itemsElement = pubsubElement.element("items");		
 
 			// Parse the activity that we want the replies from:
-			ActivityDomReader reader = new PersistentActivityDomReader();			
-			Element item = items.get(0);
-			String parentId= reader.readActivityId(new ElementAdapter(item));
+			ActivityDomReader reader = new PersistentActivityDomReader();					
+			String parentId= reader.readActivityId(new ElementAdapter(itemsElement));
 			
 
 			//The manager does the job...
