@@ -63,7 +63,7 @@ public static final String COMMAND = "items";
 
 			// Parse the activity that we want the replies from:
 			ActivityDomReader reader = new PersistentActivityDomReader();					
-			String parentId= reader.readActivityId(new ElementAdapter(itemsElement));
+			String parentId= reader.readIdFromNode(new ElementAdapter(itemsElement));
 			
 
 			//The manager does the job...
