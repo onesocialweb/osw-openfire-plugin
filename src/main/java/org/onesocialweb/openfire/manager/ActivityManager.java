@@ -23,6 +23,7 @@ import java.util.List;
 
 import javax.activity.InvalidActivityException;
 import javax.persistence.EntityManager;
+import javax.persistence.LockModeType;
 import javax.persistence.Query;
 
 import org.dom4j.dom.DOMDocument;
@@ -227,13 +228,13 @@ public class ActivityManager {
 	
 	public void deleteActivity(String fromJID, String activityId) throws UserNotFoundException, UnauthorizedException {
 		
-		final EntityManager em = OswPlugin.getEmFactory().createEntityManager();
+		EntityManager em = OswPlugin.getEmFactory().createEntityManager();
+				
 		em.getTransaction().begin();
-		
-		PersistentActivityEntry activity= em.find(PersistentActivityEntry.class, activityId);
+		PersistentActivityEntry activity= em.find(PersistentActivityEntry.class, activityId);									
 		
 		if ((activity==null) || (!activity.getActor().getUri().equalsIgnoreCase(fromJID)))
-			throw new UnauthorizedException();
+			throw new UnauthorizedException();				
 		
 		if (activity.hasReplies()){
 			Query query = em.createQuery("SELECT x FROM ActivityEntry x WHERE x.parentId = ?1");
@@ -242,15 +243,20 @@ public class ActivityManager {
 			for (ActivityEntry reply:replies){
 				em.remove(reply);
 			}
-		}
-			
+		}			
+					
+		em.clear();														
+						
+		notifyDelete(fromJID, activity);		
+		
+		activity= em.find(PersistentActivityEntry.class, activityId);	
 		em.remove(activity);
-		
 		em.getTransaction().commit();
-		em.close();
+		em.close();		
 		
-		notifyDelete(fromJID, activity);
 	}
+	
+	
 	
 
 	
