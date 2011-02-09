@@ -75,7 +75,7 @@ public static final String COMMAND = "items";
 			IQ result = IQ.createResultIQ(packet);
 			org.dom4j.Element resultPubsubElement = result.setChildElement("pubsub", "http://jabber.org/protocol/pubsub");
 			org.dom4j.Element resultItemsElement = resultPubsubElement.addElement("items");
-			resultItemsElement.addAttribute("node", PEPActivityHandler.NODE);
+			resultItemsElement.addAttribute("node", PEPCommentingHandler.NODE);
 
 			for (ActivityEntry reply : replies) {
 				org.w3c.dom.Element entryElement = (org.w3c.dom.Element) domDocument.appendChild(domDocument.createElementNS(Atom.NAMESPACE, Atom.ENTRY_ELEMENT));
