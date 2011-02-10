@@ -718,8 +718,17 @@ public class ActivityManager {
 		}
 		
 		for (String jid: jids){
-			entry.addRecipient(atomFactory.reply(null, jid, null, null));
+			if (!hasRecipient(entry.getRecipients(), jid))
+				entry.addRecipient(atomFactory.reply(null, jid, null, null));
 		}
+	}
+	
+	private boolean hasRecipient(List<AtomReplyTo> recipients, String jid){
+		for (AtomReplyTo recipient: recipients){
+			if ((recipient.getHref()!=null) && recipient.getHref().equals(jid))
+				return true;
+		}
+		return false;
 	}
 
 	/**
