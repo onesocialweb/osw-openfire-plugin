@@ -718,14 +718,14 @@ public class ActivityManager {
 		if(content.indexOf("@")>=0) {
 			String[] tokens = content.split("\\s+");
 				for(int i=0; i<tokens.length; i++) {
-					if(tokens[i].startsWith("@")) {						
+					if(tokens[i].startsWith("@") && (tokens[i].length()>1)) {						
 						jids.add(tokens[i].substring(1));
 					}
 				}
 		}
 		
 		for (String jid: jids){
-			if (!hasRecipient(entry.getRecipients(), jid))
+			if ((jid!=null) && (jid.length()!=0) && (!hasRecipient(entry.getRecipients(), jid)))
 				entry.addRecipient(atomFactory.reply(null, jid, null, null));
 		}
 	}
