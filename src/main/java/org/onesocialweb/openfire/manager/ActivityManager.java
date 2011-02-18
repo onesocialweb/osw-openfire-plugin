@@ -568,7 +568,14 @@ public class ActivityManager {
 		if (entry.hasRecipients()) {
 			for (AtomReplyTo recipient : entry.getRecipients()) {
 				//TODO This is dirty, the recipient should be an IRI etc...
-				String recipientJID = recipient.getHref();  
+				String recipientJID = recipient.getHref();
+				//if the JID is not valid, then ignore it...
+				try {
+					JID jid = new JID(recipientJID);
+				}catch (IllegalArgumentException e){
+					continue;
+				}
+				
 				if ((recipientJID==null) || (recipientJID.length()==0) || (recipientJID.contains(";node=urn:xmpp:microblog")))
 					continue;
 				if (!alreadySent.contains(recipientJID) && canSee(fromJID, entry, recipientJID)) {
