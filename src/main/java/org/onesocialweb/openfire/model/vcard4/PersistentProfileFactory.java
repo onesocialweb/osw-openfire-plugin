@@ -22,6 +22,7 @@ import org.onesocialweb.model.vcard4.EmailField;
 import org.onesocialweb.model.vcard4.FullNameField;
 import org.onesocialweb.model.vcard4.GenderField;
 import org.onesocialweb.model.vcard4.NameField;
+import org.onesocialweb.model.vcard4.NicknameField;
 import org.onesocialweb.model.vcard4.NoteField;
 import org.onesocialweb.model.vcard4.PhotoField;
 import org.onesocialweb.model.vcard4.Profile;
@@ -85,6 +86,12 @@ public class PersistentProfileFactory extends VCard4Factory {
 	@Override
 	public Profile profile() {
 		return new PersistentProfile();
+	}
+
+	@Override
+	public NicknameField nickname() {
+		
+		return new PersistentNicknameField();
 	}
 
 }
