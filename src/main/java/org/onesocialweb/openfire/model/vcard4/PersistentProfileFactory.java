@@ -26,6 +26,7 @@ import org.onesocialweb.model.vcard4.NicknameField;
 import org.onesocialweb.model.vcard4.NoteField;
 import org.onesocialweb.model.vcard4.PhotoField;
 import org.onesocialweb.model.vcard4.Profile;
+import org.onesocialweb.model.vcard4.SourceField;
 import org.onesocialweb.model.vcard4.TelField;
 import org.onesocialweb.model.vcard4.TimeZoneField;
 import org.onesocialweb.model.vcard4.URLField;
@@ -93,5 +94,12 @@ public class PersistentProfileFactory extends VCard4Factory {
 		
 		return new PersistentNicknameField();
 	}
+	
+	@Override
+	public SourceField source() {
+		
+		return new PersistentSourceField();
+	}
+	
 
 }

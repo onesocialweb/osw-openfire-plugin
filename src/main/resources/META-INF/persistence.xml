@@ -31,6 +31,7 @@
     <class>org.onesocialweb.openfire.model.vcard4.PersistentTelField</class>
     <class>org.onesocialweb.openfire.model.vcard4.PersistentTimeZoneField</class>
     <class>org.onesocialweb.openfire.model.vcard4.PersistentEmailField</class>
+    <class>org.onesocialweb.openfire.model.vcard4.PersistentNicknameField</class>
     <class>org.onesocialweb.openfire.model.vcard4.PersistentProfile</class>            
   </persistence-unit>
 </persistence>

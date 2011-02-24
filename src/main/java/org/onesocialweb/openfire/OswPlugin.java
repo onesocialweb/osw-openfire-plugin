@@ -34,10 +34,10 @@ import org.jivesoftware.openfire.container.PluginManager;
 import org.jivesoftware.openfire.interceptor.InterceptorManager;
 import org.jivesoftware.util.JiveGlobals;
 import org.jivesoftware.util.Log;
+import org.onesocialweb.openfire.handler.IQErrorInterceptor;
 import org.onesocialweb.openfire.handler.MessageEventInterceptor;
 import org.onesocialweb.openfire.handler.activity.IQSubscribeInterceptor;
 import org.onesocialweb.openfire.handler.activity.PEPActivityHandler;
-import org.onesocialweb.openfire.handler.commenting.PEPCommentingHandler;
 import org.onesocialweb.openfire.handler.inbox.PEPInboxHandler;
 import org.onesocialweb.openfire.handler.pep.IQPEPHandler;
 import org.onesocialweb.openfire.handler.profile.IQProfilePublishHandler;
@@ -62,6 +62,7 @@ public class OswPlugin implements Plugin {
 	private IQPEPHandler iqPEPHandler;
 	private MessageEventInterceptor messageInterceptor;
 	private IQSubscribeInterceptor iqSubscribeInterceptor;
+	private IQErrorInterceptor iqErrorInterceptor;
 
 	public static EntityManagerFactory getEmFactory() {
 		return emFactory;
@@ -98,6 +99,7 @@ public class OswPlugin implements Plugin {
 		// Create the message interceptors
 		messageInterceptor = new MessageEventInterceptor();
 		iqSubscribeInterceptor = new IQSubscribeInterceptor();
+		iqErrorInterceptor = new IQErrorInterceptor();
 		
 
 		// Add the IQ handlers to the router. This will trigger their
@@ -113,6 +115,7 @@ public class OswPlugin implements Plugin {
 		// Add the interceptor to process incoming notification messages
 		InterceptorManager.getInstance().addInterceptor(messageInterceptor);
 		InterceptorManager.getInstance().addInterceptor(iqSubscribeInterceptor);
+		InterceptorManager.getInstance().addInterceptor(iqErrorInterceptor);
 
 		// Add the PEP handlers, this will trigger their initialize method
 		iqPEPHandler.addHandler(new PEPActivityHandler());

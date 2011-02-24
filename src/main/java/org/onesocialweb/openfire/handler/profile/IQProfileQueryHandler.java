@@ -80,6 +80,7 @@ public class IQProfileQueryHandler extends IQHandler {
 			
 			// We fetch the profile of the target user
 			Profile profile = ProfileManager.getInstance().getProfile(sender.toBareJID(), target.toBareJID());
+						
 			
 			// Prepare the result packet
 			VCard4DomWriter writer = new DefaultVCard4DomWriter();
