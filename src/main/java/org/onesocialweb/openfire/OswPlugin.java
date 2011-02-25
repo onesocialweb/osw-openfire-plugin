@@ -52,7 +52,7 @@ public class OswPlugin implements Plugin {
 
 	private static File pluginDirectory;
 
-	private Map<String, String> connProperties = new Hashtable<String, String>();
+	private static Map<String, String> connProperties = new Hashtable<String, String>();
 
 	private IQProfileQueryHandler iqProfileQueryHandler;
 	private IQProfilePublishHandler iqProfileUpdateHandler;
@@ -123,6 +123,8 @@ public class OswPlugin implements Plugin {
 		//iqPEPHandler.addHandler(new PEPCommentingHandler());
 
 		Log.info("OneSocialWeb plugin has been loaded");
+		System.out.println("OneSocialWeb plugin has been loaded");
+		System.out.println(emFactory.isOpen());
 	}
 
 	@Override
@@ -236,5 +238,9 @@ public class OswPlugin implements Plugin {
 				JiveGlobals.setProperty("onesocialweb.path.temp", tempFolder.getAbsolutePath());
 			}
 		}
+	}
+	
+	public static void renewFactory(){
+		emFactory =Persistence.createEntityManagerFactory("onesocialweb", connProperties);
 	}
 }

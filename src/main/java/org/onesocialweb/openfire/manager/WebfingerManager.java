@@ -4,12 +4,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.dom4j.DocumentException;
 import org.dom4j.io.SAXReader;
-import org.onesocialweb.model.vcard4.DefaultProfile;
 import org.onesocialweb.model.vcard4.Profile;
 import org.onesocialweb.model.xml.hcard.HCardReader;
 import org.onesocialweb.model.xml.hcard.XMLHelper;
@@ -23,6 +24,7 @@ public class WebfingerManager {
 	
 	private static WebfingerManager instance;
 	private static Map<String, Object> data = new HashMap<String, Object>();
+	private static List<String> answeredIQsCache= new ArrayList<String>();
 		
 	private String HCARD_NS="http://microformats.org/profile/hcard";
 	private String UPDATES_FROM_NS="http://schemas.google.com/g/2010#updates-from";
@@ -32,6 +34,8 @@ public class WebfingerManager {
 		try{
 
 			Element rootXrd=findXRD(id);		
+			if (rootXrd==null)
+				return null;
 			Profile hcardProfile= getOStatusProfile(getRelAttribute("href", HCARD_NS, rootXrd));
 			String feedLink= getRelAttribute("href", UPDATES_FROM_NS, rootXrd);		
 			data.put(id+"-profile", hcardProfile);
@@ -74,11 +78,17 @@ public class WebfingerManager {
 		// Get the content , this should be the host meta file ...
 		InputStream is= (InputStream)conn.getContent();
 
+		if (is==null)
+			return null;
 	
 		SAXReader reader = new SAXReader();
         org.dom4j.Document doc = reader.read(is);
+        if (doc==null)
+        	return null;
         org.w3c.dom.Element root =new ElementAdapter(doc.getRootElement());
-	
+        if (root==null)
+        	return null;
+        
         NodeList nodelist =root.getElementsByTagNameNS("http://host-meta.net/xrd/1.0", "Host");
         
 		Element hostElement = (Element)nodelist.item(0);
@@ -96,7 +106,6 @@ public class WebfingerManager {
 		url= new URL(template);
 		conn=url.openConnection();
 		is = (InputStream)conn.getContent();
-	//	String xrdFile = convertStreamToString(is);
 		
 		doc = reader.read(is);
         root =new ElementAdapter(doc.getRootElement());
@@ -136,6 +145,17 @@ public class WebfingerManager {
 	
 	private WebfingerManager(){
 		
+	}
+	
+	public void addToCache(String iqId){
+		answeredIQsCache.add(iqId);
+	}
+	
+	public boolean iqIsAnswered(String iqId){
+		if (answeredIQsCache.contains(iqId))
+			return true;
+		else 
+			return false;
 	}
 
 }
