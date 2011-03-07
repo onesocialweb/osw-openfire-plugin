@@ -6,11 +6,27 @@
         <servlet-name>FileServlet</servlet-name>
         <servlet-class>org.onesocialweb.openfire.web.FileServlet</servlet-class>
     </servlet>
+    <servlet>
+        <servlet-name>WebfingerServlet</servlet-name>
+        <servlet-class>org.onesocialweb.openfire.web.WebfingerServlet</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>HCardServlet</servlet-name>
+        <servlet-class>org.onesocialweb.openfire.web.HCardServlet</servlet-class>
+    </servlet>
 
     <!-- Servlet mappings -->
     <servlet-mapping>
         <servlet-name>FileServlet</servlet-name>
         <url-pattern>/file</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>WebfingerServlet</servlet-name>
+        <url-pattern>/webfinger</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>HCardServlet</servlet-name>
+        <url-pattern>/profiles</url-pattern>
     </servlet-mapping>
     
 </web-app>

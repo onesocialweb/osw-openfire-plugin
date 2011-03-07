@@ -197,6 +197,50 @@ public class OswPlugin implements Plugin {
 	private void prepareFolders() {
 		prepareTempFolder();
 		prepareUploadFolder();
+		prepareWebfingerAccountsFolder();
+		prepareWebfingerProfilesFolder();
+	}
+	
+	private void prepareWebfingerAccountsFolder(){
+		final String accountsPath = JiveGlobals.getProperty("onesocialweb.webfinger.accounts");
+		if (accountsPath != null) {
+			File accountsFolder = new File(accountsPath);
+			if (accountsFolder.exists() && accountsFolder.canWrite()) {
+				return;
+			}
+			JiveGlobals.deleteProperty("onesocialweb.webfinger.accounts");
+			Log.error("Specified upload folder does not exist or read-only (" + accountsPath + ")");
+		}
+
+		File accountsFolder = new File(pluginDirectory, "accounts");
+		if (!accountsFolder.exists()) {
+			if (accountsFolder.mkdirs() && accountsFolder.canWrite()) {
+				Log.info("Created the upload folder at " + accountsFolder.getAbsolutePath());
+				JiveGlobals.setProperty("onesocialweb.webfinger.accounts", accountsFolder.getAbsolutePath());
+			}
+		}			
+	}
+	
+	private void prepareWebfingerProfilesFolder(){
+		final String profilesPath = JiveGlobals.getProperty("onesocialweb.webfinger.profiles.path");
+		if (profilesPath != null) {
+			File profilesFolder = new File(profilesPath);
+			if (profilesFolder.exists() && profilesFolder.canWrite()) {
+				return;
+			}
+			JiveGlobals.deleteProperty("onesocialweb.webfinger.profiles.path");
+			Log.error("Specified upload folder does not exist or read-only (" + profilesPath + ")");
+		}
+
+		File profilesFolder = new File(pluginDirectory, "profiles");
+		if (!profilesFolder.exists()) {
+			if (profilesFolder.mkdirs() && profilesFolder.canWrite()) {
+				Log.info("Created the upload folder at " + profilesFolder.getAbsolutePath());
+				JiveGlobals.setProperty("onesocialweb.webfinger.profiles.path", profilesFolder.getAbsolutePath());
+			}
+		}
+		
+		
 	}
 	
 	private void prepareUploadFolder() {
