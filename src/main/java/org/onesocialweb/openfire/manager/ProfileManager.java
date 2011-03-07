@@ -81,6 +81,10 @@ public class ProfileManager {
 				// We should filter all fields that the requestor is not
 				// supposed to see and strip all data related to ACLs.
 				
+				//patch for commas in the inline shouts. 
+				if (targetJID.endsWith(","))
+					targetJID=targetJID.substring(0, targetJID.length()-1);
+				
 				final AclAction viewAction = aclFactory.aclAction(AclAction.ACTION_VIEW, AclAction.PERMISSION_GRANT);
 				List<Field> fields =profile.getFields();
 				List<Field> canSeefields= new ArrayList<Field>();
