@@ -49,10 +49,8 @@ public class WebfingerServlet extends HttpServlet{
 			}
 
 			String accountsPath = JiveGlobals.getProperty("onesocialweb.webfinger.accounts");
-			String profilesUrl= JiveGlobals.getProperty("onesocialweb.webfinger.profiles.url");
-			if (profilesUrl== null){
-				profilesUrl=XMPPServer.getInstance().getServerInfo().getXMPPDomain()+"/profiles";
-			}
+			String domainName= XMPPServer.getInstance().getServerInfo().getXMPPDomain();
+			
 
 			//validate the jid here ...
 
@@ -61,7 +59,7 @@ public class WebfingerServlet extends HttpServlet{
 			}
 			else {
 				XrdWriter writer = new XrdWriter();				
-				writer.writeAccount(jid, accountsPath, profilesUrl);
+				writer.writeAccount(jid, accountsPath, domainName);
 				serveFile(response, accountsPath, jid);
 				//write the xml to disc
 				//serve the location
