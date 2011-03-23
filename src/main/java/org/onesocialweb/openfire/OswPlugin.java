@@ -34,7 +34,7 @@ import org.jivesoftware.openfire.container.PluginManager;
 import org.jivesoftware.openfire.interceptor.InterceptorManager;
 import org.jivesoftware.util.JiveGlobals;
 import org.jivesoftware.util.Log;
-import org.onesocialweb.openfire.handler.IQErrorInterceptor;
+import org.onesocialweb.openfire.handler.IQProfileInterceptor;
 import org.onesocialweb.openfire.handler.MessageEventInterceptor;
 import org.onesocialweb.openfire.handler.activity.IQSubscribeInterceptor;
 import org.onesocialweb.openfire.handler.activity.PEPActivityHandler;
@@ -45,6 +45,8 @@ import org.onesocialweb.openfire.handler.profile.IQProfileQueryHandler;
 import org.onesocialweb.openfire.handler.relation.IQRelationQueryHandler;
 import org.onesocialweb.openfire.handler.relation.IQRelationSetupHandler;
 import org.onesocialweb.openfire.handler.relation.IQRelationUpdateHandler;
+
+import PubSubHubbub.Web;
 
 public class OswPlugin implements Plugin {
 
@@ -62,7 +64,7 @@ public class OswPlugin implements Plugin {
 	private IQPEPHandler iqPEPHandler;
 	private MessageEventInterceptor messageInterceptor;
 	private IQSubscribeInterceptor iqSubscribeInterceptor;
-	private IQErrorInterceptor iqErrorInterceptor;
+	private IQProfileInterceptor iqErrorInterceptor;
 
 	public static EntityManagerFactory getEmFactory() {
 		return emFactory;
@@ -99,7 +101,7 @@ public class OswPlugin implements Plugin {
 		// Create the message interceptors
 		messageInterceptor = new MessageEventInterceptor();
 		iqSubscribeInterceptor = new IQSubscribeInterceptor();
-		iqErrorInterceptor = new IQErrorInterceptor();
+		iqErrorInterceptor = new IQProfileInterceptor();
 		
 
 		// Add the IQ handlers to the router. This will trigger their
@@ -121,7 +123,8 @@ public class OswPlugin implements Plugin {
 		iqPEPHandler.addHandler(new PEPActivityHandler());
 		iqPEPHandler.addHandler(new PEPInboxHandler());
 		//iqPEPHandler.addHandler(new PEPCommentingHandler());
-
+		
+		
 		Log.info("OneSocialWeb plugin has been loaded");
 		System.out.println("OneSocialWeb plugin has been loaded");
 		System.out.println(emFactory.isOpen());
@@ -199,6 +202,7 @@ public class OswPlugin implements Plugin {
 		prepareUploadFolder();
 		prepareWebfingerAccountsFolder();
 		prepareWebfingerProfilesFolder();
+		prepareFeedsFolder();
 	}
 	
 	private void prepareWebfingerAccountsFolder(){
@@ -217,6 +221,26 @@ public class OswPlugin implements Plugin {
 			if (accountsFolder.mkdirs() && accountsFolder.canWrite()) {
 				Log.info("Created the upload folder at " + accountsFolder.getAbsolutePath());
 				JiveGlobals.setProperty("onesocialweb.webfinger.accounts", accountsFolder.getAbsolutePath());
+			}
+		}			
+	}
+	
+	private void prepareFeedsFolder(){
+		final String feedsPath = JiveGlobals.getProperty("onesocialweb.push.feeds");
+		if (feedsPath != null) {
+			File accountsFolder = new File(feedsPath);
+			if (accountsFolder.exists() && accountsFolder.canWrite()) {
+				return;
+			}
+			JiveGlobals.deleteProperty("onesocialweb.push.feeds");
+			Log.error("Specified upload folder does not exist or read-only (" + feedsPath + ")");
+		}
+
+		File feedsFolder = new File(pluginDirectory, "feeds");
+		if (!feedsFolder.exists()) {
+			if (feedsFolder.mkdirs() && feedsFolder.canWrite()) {
+				Log.info("Created the upload folder at " + feedsFolder.getAbsolutePath());
+				JiveGlobals.setProperty("onesocialweb.push.feeds", feedsFolder.getAbsolutePath());
 			}
 		}			
 	}
@@ -287,4 +311,6 @@ public class OswPlugin implements Plugin {
 	public static void renewFactory(){
 		emFactory =Persistence.createEntityManagerFactory("onesocialweb", connProperties);
 	}
+	
+
 }

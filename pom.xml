@@ -161,6 +161,57 @@
       <artifactId>openfire</artifactId>
       <version>3.6.4</version>
     </dependency>
+     <dependency>
+      <groupId>push-publisher</groupId>
+      <artifactId>push-publisher</artifactId>
+      <version>0.3</version>
+    </dependency>
+     <dependency>
+      <groupId>push-subscriber</groupId>
+      <artifactId>push-subscriber</artifactId>
+      <version>0.3</version>
+    </dependency>
+   <dependency>
+  <groupId>org.apache.httpcomponents</groupId>
+    <artifactId>httpclient</artifactId>
+    <version>4.1</version>
+</dependency>
+   <dependency>
+<groupId>org.apache.httpcomponents</groupId>
+    <artifactId>httpcore</artifactId>
+    <version>4.1</version>
+    </dependency>
+    
+    <dependency>
+ 	<artifactId>jetty-http</artifactId>
+    <groupId>org.eclipse.jetty</groupId>
+    <version>7.0.0.v20091005</version>
+    </dependency>
+    
+     <dependency>
+ <groupId>org.eclipse.jetty</groupId>
+    <version>7.0.0.v20091005</version>
+    <artifactId>jetty-io</artifactId>
+    </dependency>
+    
+    <dependency>
+    <groupId>org.eclipse.jetty</groupId>
+    <artifactId>jetty-server</artifactId>
+    <version>7.0.0.v20091005</version>
+    </dependency>
+    
+    <dependency>
+     <groupId>org.eclipse.jetty</groupId>
+    <artifactId>jetty-util</artifactId>
+    <version>7.0.0.v20091005</version>
+    </dependency>
+    
+    <dependency>
+    <groupId>org.eclipse.jetty</groupId>
+    <artifactId>jetty-continuation</artifactId>
+    <version>7.0.0.v20091005</version>
+    </dependency>
+    
   </dependencies>
   
   
@@ -177,6 +228,11 @@
       <id>vodafonernd.com</id>
       <name>vodafonernd.com-releases</name>
       <url>http://vodafonernd.com/artifactory/libs-releases-local</url>
-    </repository>
+    </repository>   
+    <repository>
+      <id>central-uk</id>
+      <name>central-uk</name>
+      <url>http://uk.maven.org/maven2</url>
+    </repository>   
   </repositories>  
 </project>

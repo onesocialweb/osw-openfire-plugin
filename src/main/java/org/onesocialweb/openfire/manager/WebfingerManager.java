@@ -9,16 +9,29 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import javax.persistence.EntityManager;
+import javax.persistence.Query;
+
 import org.dom4j.DocumentException;
 import org.dom4j.io.SAXReader;
+import org.onesocialweb.model.vcard4.DefaultVCard4Factory;
 import org.onesocialweb.model.vcard4.Profile;
+import org.onesocialweb.model.vcard4.VCard4Factory;
+import org.onesocialweb.model.vcard4.XFeedField;
 import org.onesocialweb.model.xml.hcard.HCardReader;
 import org.onesocialweb.model.xml.hcard.XMLHelper;
+import org.onesocialweb.openfire.model.cache.DomainCache;
 import org.onesocialweb.xml.dom4j.ElementAdapter;
+import org.onesocialweb.xml.namespace.OStatus;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xmpp.packet.JID;
+
 
 public class WebfingerManager {
 	
@@ -26,8 +39,6 @@ public class WebfingerManager {
 	private static Map<String, Object> data = new HashMap<String, Object>();
 	private static List<String> answeredIQsCache= new ArrayList<String>();
 		
-	private String HCARD_NS="http://microformats.org/profile/hcard";
-	private String UPDATES_FROM_NS="http://schemas.google.com/g/2010#updates-from";
 	
 	public Profile WebfingerLookUp(String id){
 		//set the hcard info and the feed url in the cache...		
@@ -36,10 +47,17 @@ public class WebfingerManager {
 			Element rootXrd=findXRD(id);		
 			if (rootXrd==null)
 				return null;
-			Profile hcardProfile= getOStatusProfile(getRelAttribute("href", HCARD_NS, rootXrd));
-			String feedLink= getRelAttribute("href", UPDATES_FROM_NS, rootXrd);		
+			Profile hcardProfile= getOStatusProfile(getRelAttribute("href", OStatus.HCARD_NAMESPACE, rootXrd));
+			String feedLink= getRelAttribute("href", OStatus.ATOM_UPDATES, rootXrd);		
 			data.put(id+"-profile", hcardProfile);
 			data.put(id+"-link", feedLink);
+			
+			//set the feed url for the OStatus profile...
+			VCard4Factory factory = new DefaultVCard4Factory();
+	        XFeedField feedField=factory.feed();
+	        feedField.setFeed(feedLink);
+	        hcardProfile.addField(feedField);
+	        
 			return hcardProfile;
 		}
 		catch (Exception e){
@@ -50,15 +68,27 @@ public class WebfingerManager {
 	
 	private Profile getOStatusProfile(String hcardLink) throws DocumentException, IOException{
 		//get the hcard document and parse it to a Profile object?...
-
+		
+		if (hcardLink.contains("google.com")){
+			hcardLink=hcardLink.replaceFirst("http", "https");		
+		}
  		URL url = new URL(hcardLink);
-		URLConnection conn = url.openConnection ();
-			
-		InputStream is= (InputStream)conn.getContent();;
+ 		InputStream is=null;
+ 		if (hcardLink.contains("https")){
+ 			installTrustingStore();
+ 			HttpsURLConnection https=(HttpsURLConnection)url.openConnection ();
+ 			is= (InputStream)https.getContent();
+ 		} else {
+ 			URLConnection conn = url.openConnection ();
+ 			is= (InputStream)conn.getContent();
+ 		}
+	
+		
         Node rootNode =XMLHelper.clearSoup(is);
 		
         HCardReader hCardReader= new HCardReader(hcardLink);
         return hCardReader.readProfile(rootNode);
+        
 		
 	}
 	
@@ -157,5 +187,41 @@ public class WebfingerManager {
 		else 
 			return false;
 	}
+	
+	private void installTrustingStore(){
+		
+		TrustManager[] trustAllCerts = new TrustManager[]{
+			    new X509TrustManager() {
+			        public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+			            return null;
+			        }
+			        public void checkClientTrusted(
+			            java.security.cert.X509Certificate[] certs, String authType) {
+			        }
+			        public void checkServerTrusted(
+			            java.security.cert.X509Certificate[] certs, String authType) {
+			        }
+			    }
+			};
 
+			// Install the all-trusting trust manager
+			try {
+			    SSLContext sc = SSLContext.getInstance("SSL");
+			    sc.init(null, trustAllCerts, new java.security.SecureRandom());
+			    HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+			} catch (Exception e) {
+			
+			}
+	}
+
+	public DomainCache findInCache(EntityManager em, String domain){		
+		
+		Query query = em.createQuery("SELECT x FROM DomainCache x WHERE x.domain = ?1");
+		query.setParameter(1, domain);		
+		List<DomainCache> entries = query.getResultList();
+		if ((entries!=null) && (entries.size()>0))
+			return entries.get(0);
+
+		return null;
+	}
 }

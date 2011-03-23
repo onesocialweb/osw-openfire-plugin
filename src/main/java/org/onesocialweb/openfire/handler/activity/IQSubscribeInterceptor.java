@@ -16,17 +16,25 @@
  */
 package org.onesocialweb.openfire.handler.activity;
 
+import javax.persistence.EntityManager;
+
 import org.dom4j.Attribute;
 import org.dom4j.Element;
 import org.dom4j.Namespace;
+import org.jivesoftware.openfire.IQRouter;
 import org.jivesoftware.openfire.XMPPServer;
 import org.jivesoftware.openfire.interceptor.PacketInterceptor;
 import org.jivesoftware.openfire.interceptor.PacketRejectedException;
 import org.jivesoftware.openfire.session.Session;
+import org.onesocialweb.openfire.OswPlugin;
 import org.onesocialweb.openfire.manager.ActivityManager;
+import org.onesocialweb.openfire.manager.FeedManager;
+import org.onesocialweb.openfire.manager.WebfingerManager;
+import org.onesocialweb.openfire.model.cache.DomainCache;
 import org.xmpp.packet.IQ;
 import org.xmpp.packet.JID;
 import org.xmpp.packet.Packet;
+import org.xmpp.packet.PacketError;
 
 public class IQSubscribeInterceptor implements PacketInterceptor {
 
@@ -67,16 +75,72 @@ public class IQSubscribeInterceptor implements PacketInterceptor {
 			
 			// Relating to the microblogging node
 			Attribute nodeAttribute = commandElement.attribute("node");
-			if (!(nodeAttribute != null && nodeAttribute.getValue().equals(PEPActivityHandler.NODE))) {
+			if (nodeAttribute==null)
 				return;
+			if (!nodeAttribute.getValue().equals(PEPActivityHandler.NODE)) {
+				//if it's not a subscription to the microblogging node, then we assume check if its an ostatus account, 
+				// and try to subscribe to it...
+				String topic=nodeAttribute.getValue();
+
+				final EntityManager em = OswPlugin.getEmFactory().createEntityManager();
+				DomainCache cache = WebfingerManager.getInstance().findInCache(em, toJID.getDomain());
+
+				if (cache.getProtocols().equals("ostatus")){
+					IQRouter iqRouter = XMPPServer.getInstance().getIQRouter();			
+					try {
+						int status=FeedManager.getInstance().subscribeToFeed(topic);
+						
+						if (status==204){
+							ActivityManager.getInstance().subscribe(fromJID.toBareJID(), toJID.toBareJID());
+							
+							IQ result = IQ.createResultIQ(iq);
+							Element resultPubsubElement = result.setChildElement("pubsub", "http://jabber.org/protocol/pubsub");
+							Element resultSubscriptionElement = resultPubsubElement.addElement("subscription", "http://jabber.org/protocol/pubsub");
+							resultSubscriptionElement.addAttribute("node", topic);
+							resultSubscriptionElement.addAttribute("jid", toJID.getDomain());
+							resultSubscriptionElement.addAttribute("subscription", "subscribed");					
+
+							iqRouter.route(result);					
+							throw new PacketRejectedException();
+						}
+						if (status==202){
+							IQ result = IQ.createResultIQ(iq);
+							Element resultPubsubElement = result.setChildElement("pubsub", "http://jabber.org/protocol/pubsub");
+							Element resultSubscriptionElement = resultPubsubElement.addElement("subscription", "http://jabber.org/protocol/pubsub");
+							resultSubscriptionElement.addAttribute("node", topic);
+							resultSubscriptionElement.addAttribute("jid", toJID.getDomain());
+							resultSubscriptionElement.addAttribute("subscription", "not-verified");					
+
+							iqRouter.route(result);					
+							throw new PacketRejectedException();
+						}
+						else {
+							IQ result = IQ.createResultIQ(iq);
+							result.setChildElement(iq.getChildElement().createCopy());
+							result.setError(PacketError.Condition.internal_server_error);
+															
+							iqRouter.route(result);					
+							throw new PacketRejectedException();
+						}
+					} 
+					catch (Exception e){
+						IQ result = IQ.createResultIQ(iq);
+						result.setChildElement(iq.getChildElement().createCopy());
+						result.setError(PacketError.Condition.internal_server_error);
+														
+						iqRouter.route(result);					
+						throw new PacketRejectedException();
+					}
+				}
 			}
-			
-			
-			// Then we keep track of the subscribe/unsubscribe request
-			if (commandElement.getName().equals("subscribe")) {
-				ActivityManager.getInstance().subscribe(fromJID.toBareJID(), toJID.toBareJID());
-			} else {
-				ActivityManager.getInstance().unsubscribe(fromJID.toBareJID(), toJID.toBareJID());
+			else {
+
+				// Then we keep track of the subscribe/unsubscribe request
+				if (commandElement.getName().equals("subscribe")) {
+					ActivityManager.getInstance().subscribe(fromJID.toBareJID(), toJID.toBareJID());
+				} else {
+					ActivityManager.getInstance().unsubscribe(fromJID.toBareJID(), toJID.toBareJID());
+				}
 			}
 
 		}

@@ -29,6 +29,7 @@ import org.jivesoftware.util.Log;
 import org.onesocialweb.model.activity.ActivityEntry;
 import org.onesocialweb.openfire.handler.pep.PEPCommandHandler;
 import org.onesocialweb.openfire.manager.ActivityManager;
+import org.onesocialweb.openfire.manager.FeedManager;
 import org.onesocialweb.openfire.model.activity.PersistentActivityDomReader;
 import org.onesocialweb.xml.dom.ActivityDomReader;
 import org.onesocialweb.xml.dom4j.ElementAdapter;
@@ -116,6 +117,7 @@ public class ActivityPublishHandler extends PEPCommandHandler {
 							itemIds.add(activity.getId());
 							}														
 					} catch (UserNotFoundException e) {}
+					FeedManager.getInstance().addToFeed(activity, sender.getNode());
 				}
 			}
 

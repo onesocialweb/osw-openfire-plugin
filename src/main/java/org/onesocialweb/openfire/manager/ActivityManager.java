@@ -23,7 +23,6 @@ import java.util.List;
 
 import javax.activity.InvalidActivityException;
 import javax.persistence.EntityManager;
-import javax.persistence.LockModeType;
 import javax.persistence.Query;
 
 import org.dom4j.dom.DOMDocument;
@@ -43,6 +42,7 @@ import org.onesocialweb.model.activity.ActivityActor;
 import org.onesocialweb.model.activity.ActivityEntry;
 import org.onesocialweb.model.activity.ActivityFactory;
 import org.onesocialweb.model.activity.ActivityObject;
+import org.onesocialweb.model.atom.AtomContent;
 import org.onesocialweb.model.atom.AtomFactory;
 import org.onesocialweb.model.atom.AtomLink;
 import org.onesocialweb.model.atom.AtomReplyTo;
@@ -140,6 +140,26 @@ public class ActivityManager {
 		notify(userJID, entry);
 	}
 	
+	
+	public void publishOStatusActivity(ActivityEntry entry) {		
+
+		// Persist the activities
+		final EntityManager em = OswPlugin.getEmFactory().createEntityManager();
+		em.getTransaction().begin();
+		entry.setId(DefaultAtomHelper.generateId());
+		for (ActivityObject object : entry.getObjects()) {
+			object.setId(DefaultAtomHelper.generateId());
+			
+		}
+		
+		em.persist(entry);
+		em.getTransaction().commit();
+		em.close();
+
+		// Broadcast the notifications
+		notifyPublic(entry.getActor().getUri(), entry);
+	}
+	
 	/**
 	 * Updates an activity in the activity stream of the given user.
 	 * activity-actor element is overwrittern using the user profile data to
@@ -172,8 +192,16 @@ public class ActivityManager {
 		oldEntry.setUpdated(Calendar.getInstance().getTime());
 		for (ActivityObject obj: oldEntry.getObjects()){
 			obj.setUpdated(Calendar.getInstance().getTime());
+			if (obj.getType().equals(ActivityObject.STATUS_UPDATE)){
+				List<AtomContent> contents=obj.getContents();
+				for (AtomContent cont: contents){
+					cont.setValue(entry.getTitle());
+				}
+			}
 		}
 		oldEntry.setTitle(entry.getTitle());
+		//update the content of the object as well...
+				
 		
 		addMentions(oldEntry);
 		
@@ -587,6 +615,55 @@ public class ActivityManager {
 			}
 		}			
 	}
+	
+	//With public activities like the ones coming from OStatus, there is no
+	//need to check visibility, just broadcast...
+	private void notifyPublic(String fromJID, ActivityEntry entry) {
+
+		// TODO We may want to do some cleaning of activities before
+		// forwarding them (e.g. remove the acl, it is no one business)
+		final ActivityDomWriter writer = new DefaultActivityDomWriter();
+		final XMPPServer server = XMPPServer.getInstance();
+		final List<Subscription> subscriptions = getSubscribers(fromJID);
+
+		final DOMDocument domDocument = new DOMDocument();
+
+		// Prepare the message
+		final Element entryElement = (Element) domDocument.appendChild(domDocument.createElementNS(Atom.NAMESPACE, Atom.ENTRY_ELEMENT));
+		writer.write(entry, entryElement);
+		domDocument.removeChild(entryElement);
+
+		final Message message = new Message();
+		message.setFrom(fromJID);
+		message.setBody("New activity: " + entry.getTitle());
+		message.setType(Message.Type.headline);
+		org.dom4j.Element eventElement = message.addChildElement("event", "http://jabber.org/protocol/pubsub#event");
+		org.dom4j.Element itemsElement = eventElement.addElement("items");
+		itemsElement.addAttribute("node", PEPActivityHandler.NODE);
+		org.dom4j.Element itemElement = itemsElement.addElement("item");
+		itemElement.addAttribute("id", entry.getId());
+		itemElement.add((org.dom4j.Element) entryElement);
+
+		// Keep a list of people we sent it to avoid duplicates
+		List<String> alreadySent = new ArrayList<String>();
+		
+		// Send to this user	
+		alreadySent.add(fromJID);
+		message.setTo(fromJID);
+		server.getMessageRouter().route(message);
+	
+						
+		// Send to all subscribers
+		for (Subscription activitySubscription : subscriptions) {
+			String recipientJID = activitySubscription.getSubscriber();
+		
+			alreadySent.add(recipientJID);						
+			message.setTo(recipientJID);
+			server.getMessageRouter().route(message);	
+		}
+		
+	}
+
 	
 	private void notifyComment(String fromJID, String toJID, ActivityEntry entry) throws UserNotFoundException {
 		

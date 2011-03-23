@@ -25,7 +25,7 @@ import org.xmpp.packet.JID;
 import org.xmpp.packet.Packet;
 import org.xmpp.packet.PacketError;
 
-public class IQErrorInterceptor implements PacketInterceptor {
+public class IQProfileInterceptor implements PacketInterceptor {
 	
 	public static final String IQ_QUERY_NAME = "query";
 	
@@ -59,7 +59,7 @@ public class IQErrorInterceptor implements PacketInterceptor {
 								
 				//check if the domain is in the local cache...
 				final EntityManager em = OswPlugin.getEmFactory().createEntityManager();
-				DomainCache cache = findInCache(em, jid.getDomain());
+				DomainCache cache = WebfingerManager.getInstance().findInCache(em, jid.getDomain());
 				if ((cache==null) || cache.getProtocols().equals("both")){
 					//we route the packet to try to find the xmpp account							
 					//but perform webfinger locally in the meantime in a different thread
@@ -137,14 +137,5 @@ public class IQErrorInterceptor implements PacketInterceptor {
 		return result;	
 	}
 	
-	private DomainCache findInCache(EntityManager em, String domain){		
-		
-		Query query = em.createQuery("SELECT x FROM DomainCache x WHERE x.domain = ?1");
-		query.setParameter(1, domain);		
-		List<DomainCache> entries = query.getResultList();
-		if ((entries!=null) && (entries.size()>0))
-			return entries.get(0);
 
-		return null;
-	}
 }

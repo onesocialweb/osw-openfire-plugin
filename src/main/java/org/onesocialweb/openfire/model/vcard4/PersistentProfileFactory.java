@@ -31,6 +31,7 @@ import org.onesocialweb.model.vcard4.TelField;
 import org.onesocialweb.model.vcard4.TimeZoneField;
 import org.onesocialweb.model.vcard4.URLField;
 import org.onesocialweb.model.vcard4.VCard4Factory;
+import org.onesocialweb.model.vcard4.XFeedField;
 
 public class PersistentProfileFactory extends VCard4Factory {
 
@@ -99,6 +100,12 @@ public class PersistentProfileFactory extends VCard4Factory {
 	public SourceField source() {
 		
 		return new PersistentSourceField();
+	}
+	
+	@Override
+	public XFeedField feed() {
+		
+		return new PersistentXFeedField();
 	}
 	
 
