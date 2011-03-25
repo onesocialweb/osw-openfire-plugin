@@ -1,4 +1,4 @@
-package org.onesocialweb.openfire.handler;
+package org.onesocialweb.openfire.handler.push;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,13 +8,14 @@ import org.onesocialweb.model.activity.ActivityEntry;
 import org.onesocialweb.model.activity.ActivityFactory;
 import org.onesocialweb.model.activity.ActivityObject;
 import org.onesocialweb.model.activity.ActivityVerb;
-import org.onesocialweb.model.activity.DefaultActivityFactory;
 import org.onesocialweb.model.atom.AtomContent;
 import org.onesocialweb.model.atom.AtomFactory;
-import org.onesocialweb.model.atom.DefaultAtomFactory;
-import org.onesocialweb.model.atom.DefaultAtomHelper;
 import org.onesocialweb.openfire.manager.ActivityManager;
-import org.onesocialweb.openfire.model.Subscription;
+import org.onesocialweb.openfire.model.activity.PersistentActivityFactory;
+import org.onesocialweb.openfire.model.atom.PersistentAtomFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
 import PubSubHubbub.PuSHhandler;
 
@@ -27,10 +28,10 @@ import com.sun.syndication.feed.synd.SyndPerson;
 public class OswPushHandler extends PuSHhandler{
 
 	@Override
-	protected void processFeeds(SyndFeed feed){		
+	protected void processFeeds(SyndFeed feed, Document doc){		
 	
-		ActivityFactory activityfactory= new DefaultActivityFactory();
-		AtomFactory atomFactory = new DefaultAtomFactory();
+		ActivityFactory activityfactory= new PersistentActivityFactory();
+		AtomFactory atomFactory = new PersistentAtomFactory();
 		
 		 SyndPerson author=(SyndPerson)feed.getAuthors().get(0);
 		
@@ -66,8 +67,14 @@ public class OswPushHandler extends PuSHhandler{
         	activity.addVerb(activityfactory.verb(ActivityVerb.POST));
         	
         	ActivityActor actor= activityfactory.actor();
-        	actor.setUri(author.getUri());
-        	actor.setName(author.getName());
+        	String uri=author.getUri();
+        	if (uri.contains("http://")){
+        		uri=author.getName()+"@"+extractDomain(uri);
+        	}
+        	actor.setUri(uri);
+        	//here set the poco Name, it is included in the feed...
+        	        	        	
+        	actor.setName(getPocoDisplayName(doc));
         	actor.setEmail(author.getEmail());
         	
         	activity.setActor(actor);
@@ -75,6 +82,21 @@ public class OswPushHandler extends PuSHhandler{
         	ActivityManager.getInstance().publishOStatusActivity(activity);
         	
         }   	
+	}
+	
+	private String extractDomain(String uri){
+		uri=uri.substring(7, uri.length());
+		int index=uri.indexOf("/");
+		uri=uri.substring(0, index);
+		return uri;
+	}
+	
+	private String getPocoDisplayName(Document d){
+		Element root=(Element)d.getFirstChild();
+        NodeList authors= root.getElementsByTagName("author");
+        Element a= (Element)authors.item(0);     
+        NodeList children=a.getElementsByTagName("poco:displayName");
+        return children.item(0).getTextContent();
 	}
 	
 }

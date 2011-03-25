@@ -20,7 +20,7 @@ import org.jivesoftware.openfire.user.UserNotFoundException;
 import org.jivesoftware.util.JiveGlobals;
 import org.onesocialweb.model.activity.ActivityEntry;
 import org.onesocialweb.model.atom.DefaultAtomHelper;
-import org.onesocialweb.openfire.handler.OswPushHandler;
+import org.onesocialweb.openfire.handler.push.OswPushHandler;
 import org.onesocialweb.xml.dom.ActivityDomReader;
 import org.onesocialweb.xml.dom.ActivityDomWriter;
 import org.onesocialweb.xml.dom.imp.DefaultActivityDomReader;

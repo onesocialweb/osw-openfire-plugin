@@ -156,8 +156,17 @@ public class ActivityManager {
 		em.getTransaction().commit();
 		em.close();
 
+		//if the uri is an web address 
+		String uri=entry.getActor().getUri();
+		if (uri.startsWith("http://")){
+			uri=uri.substring(7, uri.length());
+			int index=uri.indexOf("/");
+			uri=uri.substring(0, index);
+			uri=entry.getActor().getName() + "@" + uri; 
+		}
+				
 		// Broadcast the notifications
-		notifyPublic(entry.getActor().getUri(), entry);
+		notifyPublic(uri, entry);
 	}
 	
 	/**
@@ -388,7 +397,7 @@ public class ActivityManager {
 			if (oldMessage.getRecipient().equalsIgnoreCase(localJID))
 				em.remove(oldMessage);
 		}
-		if (previousActivity != null){
+		if ((previousActivity != null) && (messages.size()>0)){
 			// In the case of an update, we check that the incoming message is really from the author of the 
 			// original post, i.e. the only one who has the rights to modify the activity.
 			if (!remoteJID.equalsIgnoreCase(previousActivity.getActor().getUri()))
@@ -406,7 +415,9 @@ public class ActivityManager {
 		// We go ahead and post the message to the recipient mailbox
 		em.getTransaction().begin();
 		em.persist(message);
-		em.persist(activity);
+		if ((previousActivity==null) || (messages.size()>0)) 
+			em.persist(activity);
+				
 		em.getTransaction().commit();
 		em.close();
 				
@@ -647,11 +658,6 @@ public class ActivityManager {
 		// Keep a list of people we sent it to avoid duplicates
 		List<String> alreadySent = new ArrayList<String>();
 		
-		// Send to this user	
-		alreadySent.add(fromJID);
-		message.setTo(fromJID);
-		server.getMessageRouter().route(message);
-	
 						
 		// Send to all subscribers
 		for (Subscription activitySubscription : subscriptions) {

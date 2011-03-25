@@ -1,9 +1,6 @@
 package org.onesocialweb.openfire.handler;
 
-import java.util.List;
-
 import javax.persistence.EntityManager;
-import javax.persistence.Query;
 
 import org.dom4j.dom.DOMDocument;
 import org.jivesoftware.openfire.IQRouter;
