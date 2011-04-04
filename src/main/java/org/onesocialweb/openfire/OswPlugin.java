@@ -38,6 +38,7 @@ import org.onesocialweb.openfire.handler.IQProfileInterceptor;
 import org.onesocialweb.openfire.handler.MessageEventInterceptor;
 import org.onesocialweb.openfire.handler.activity.IQSubscribeInterceptor;
 import org.onesocialweb.openfire.handler.activity.PEPActivityHandler;
+import org.onesocialweb.openfire.handler.cache.IQCacheQueryHandler;
 import org.onesocialweb.openfire.handler.inbox.PEPInboxHandler;
 import org.onesocialweb.openfire.handler.pep.IQPEPHandler;
 import org.onesocialweb.openfire.handler.profile.IQProfilePublishHandler;
@@ -45,8 +46,6 @@ import org.onesocialweb.openfire.handler.profile.IQProfileQueryHandler;
 import org.onesocialweb.openfire.handler.relation.IQRelationQueryHandler;
 import org.onesocialweb.openfire.handler.relation.IQRelationSetupHandler;
 import org.onesocialweb.openfire.handler.relation.IQRelationUpdateHandler;
-
-import PubSubHubbub.Web;
 
 public class OswPlugin implements Plugin {
 
@@ -57,6 +56,7 @@ public class OswPlugin implements Plugin {
 	private static Map<String, String> connProperties = new Hashtable<String, String>();
 
 	private IQProfileQueryHandler iqProfileQueryHandler;
+	private IQCacheQueryHandler iqCacheQueryHandler;
 	private IQProfilePublishHandler iqProfileUpdateHandler;
 	private IQRelationSetupHandler iqRelationSetupHandler;
 	private IQRelationUpdateHandler iqRelationUpdateHandler;
@@ -94,7 +94,7 @@ public class OswPlugin implements Plugin {
 		iqRelationSetupHandler = new IQRelationSetupHandler();
 		iqRelationQueryHandler = new IQRelationQueryHandler();
 		iqRelationUpdateHandler = new IQRelationUpdateHandler();
-
+		iqCacheQueryHandler = new IQCacheQueryHandler();
 		// Create the PEP handlers
 		iqPEPHandler = new IQPEPHandler();
 
@@ -113,6 +113,7 @@ public class OswPlugin implements Plugin {
 		iqRouter.addHandler(iqRelationUpdateHandler);
 		iqRouter.addHandler(iqRelationQueryHandler);
 		iqRouter.addHandler(iqPEPHandler);
+		iqRouter.addHandler(iqCacheQueryHandler);
 
 		// Add the interceptor to process incoming notification messages
 		InterceptorManager.getInstance().addInterceptor(messageInterceptor);
@@ -122,7 +123,7 @@ public class OswPlugin implements Plugin {
 		// Add the PEP handlers, this will trigger their initialize method
 		iqPEPHandler.addHandler(new PEPActivityHandler());
 		iqPEPHandler.addHandler(new PEPInboxHandler());
-		//iqPEPHandler.addHandler(new PEPCommentingHandler());
+		
 		
 		
 		Log.info("OneSocialWeb plugin has been loaded");

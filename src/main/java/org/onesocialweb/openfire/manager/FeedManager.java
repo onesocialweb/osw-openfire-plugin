@@ -1,3 +1,20 @@
+/*
+ *  Copyright 2011 Vodafone Group Services Ltd.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *    
+ */
+
 package org.onesocialweb.openfire.manager;
 
 import java.io.File;
@@ -36,6 +53,16 @@ import PubSubHubbub.Discovery;
 import PubSubHubbub.Subscriber;
 import PubSubHubbub.Web;
 import Published.Publisher;
+
+/**
+ * The feed manager is a singleton class taking care of all the business
+ * logic related to creating and updating feeds trigger on new and updated
+ * onesocialweb activities. It also has methods for pinging a hub on new updates
+ * and for subscribing to feeds.
+ * 
+ * @author dcheng
+ * 
+ */
 
 public class FeedManager {
 	
@@ -220,16 +247,31 @@ public class FeedManager {
 			   String hub= disc.getHub(topic);
 			   Subscriber sbcbr = new Subscriber(webserver);				
 				
-			   String hostname = XMPPServer.getInstance().getServerInfo().getXMPPDomain();
-			   //String hostname = "vodafonernd.com";
+			  // String hostname = XMPPServer.getInstance().getServerInfo().getXMPPDomain();
+			   String hostname="vodafonernd.com";
 				//the callback endpoint is actually running on 8080, but since that port is not open 
 				//we set apache to redirect to it, and specify here just port 80
 				hostname = "http://" + hostname;
 			   int statusCode = sbcbr.subscribe(hub, topic, hostname, null, null);
 			   
-			   return statusCode;
-		
+			   return statusCode;		
 	}
+	
+	public int unsubscribeToFeed(String topic) throws Exception {
+				
+		   Discovery disc= new Discovery();
+		   String hub= disc.getHub(topic);
+		   Subscriber sbcbr = new Subscriber(webserver);				
+			
+		  // String hostname = XMPPServer.getInstance().getServerInfo().getXMPPDomain();
+		   String hostname="vodafonernd.com";
+			//the callback endpoint is actually running on 8080, but since that port is not open 
+			//we set apache to redirect to it, and specify here just port 80
+			hostname = "http://" + hostname;
+		   int statusCode = sbcbr.unsubscribe(hub, topic, hostname, null);
+		   
+		   return statusCode;		
+}
 	
 	private void addFeedStuff(Element feedElement, String hub, String feedAddress, String jid){
 		//add feed stuff, hub and the rest...

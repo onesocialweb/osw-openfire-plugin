@@ -26,11 +26,11 @@ import org.jivesoftware.openfire.XMPPServer;
 import org.jivesoftware.openfire.interceptor.PacketInterceptor;
 import org.jivesoftware.openfire.interceptor.PacketRejectedException;
 import org.jivesoftware.openfire.session.Session;
+import org.onesocialweb.model.cache.DomainCache;
 import org.onesocialweb.openfire.OswPlugin;
 import org.onesocialweb.openfire.manager.ActivityManager;
 import org.onesocialweb.openfire.manager.FeedManager;
 import org.onesocialweb.openfire.manager.WebfingerManager;
-import org.onesocialweb.openfire.model.cache.DomainCache;
 import org.xmpp.packet.IQ;
 import org.xmpp.packet.JID;
 import org.xmpp.packet.Packet;
@@ -78,7 +78,7 @@ public class IQSubscribeInterceptor implements PacketInterceptor {
 			if (nodeAttribute==null)
 				return;
 			if (!nodeAttribute.getValue().equals(PEPActivityHandler.NODE)) {
-				//if it's not a subscription to the microblogging node, then we assume check if its an ostatus account, 
+				//if it's not a subscription to the microblogging node, then we check if its an ostatus account, 
 				// and try to subscribe to it...
 				String topic=nodeAttribute.getValue();
 
@@ -86,31 +86,45 @@ public class IQSubscribeInterceptor implements PacketInterceptor {
 				DomainCache cache = WebfingerManager.getInstance().findInCache(em, toJID.getDomain());
 
 				if (cache.getProtocols().equals("ostatus")){
-					IQRouter iqRouter = XMPPServer.getInstance().getIQRouter();			
+					IQRouter iqRouter = XMPPServer.getInstance().getIQRouter();	
+					int status;
 					try {
-						int status=FeedManager.getInstance().subscribeToFeed(topic);
-						
+						if (commandElement.getName().equals("subscribe")) {
+							status=FeedManager.getInstance().subscribeToFeed(topic);
+						}
+						else {
+							status=FeedManager.getInstance().unsubscribeToFeed(topic);
+						}
+
 						if (status==204){
-							ActivityManager.getInstance().subscribe(fromJID.toBareJID(), toJID.toBareJID());
-							
-							IQ result = IQ.createResultIQ(iq);
-							Element resultPubsubElement = result.setChildElement("pubsub", "http://jabber.org/protocol/pubsub");
-							Element resultSubscriptionElement = resultPubsubElement.addElement("subscription", "http://jabber.org/protocol/pubsub");
-							resultSubscriptionElement.addAttribute("node", topic);
-							resultSubscriptionElement.addAttribute("jid", toJID.getDomain());
-							resultSubscriptionElement.addAttribute("subscription", "subscribed");					
+							if (commandElement.getName().equals("subscribe")) {
+								ActivityManager.getInstance().subscribe(fromJID.toBareJID(), toJID.toBareJID());
+							}
+							else {
+								ActivityManager.getInstance().unsubscribe(fromJID.toBareJID(), toJID.toBareJID());
+							}
+
+							IQ result = IQ.createResultIQ(iq);							
+							if (commandElement.getName().equals("subscribe")) {
+								Element resultPubsubElement = result.setChildElement("pubsub", "http://jabber.org/protocol/pubsub");
+								Element resultSubscriptionElement = resultPubsubElement.addElement("subscription", "http://jabber.org/protocol/pubsub");
+								resultSubscriptionElement.addAttribute("node", topic);
+								resultSubscriptionElement.addAttribute("jid", toJID.getDomain());
+								resultSubscriptionElement.addAttribute("subscription", "subscribed");
+							}
 
 							iqRouter.route(result);					
 							throw new PacketRejectedException();
 						}
 						if (status==202){
 							IQ result = IQ.createResultIQ(iq);
-							Element resultPubsubElement = result.setChildElement("pubsub", "http://jabber.org/protocol/pubsub");
-							Element resultSubscriptionElement = resultPubsubElement.addElement("subscription", "http://jabber.org/protocol/pubsub");
-							resultSubscriptionElement.addAttribute("node", topic);
-							resultSubscriptionElement.addAttribute("jid", toJID.getDomain());
-							resultSubscriptionElement.addAttribute("subscription", "not-verified");					
-
+							if (commandElement.getName().equals("subscribe")) {
+								Element resultPubsubElement = result.setChildElement("pubsub", "http://jabber.org/protocol/pubsub");
+								Element resultSubscriptionElement = resultPubsubElement.addElement("subscription", "http://jabber.org/protocol/pubsub");
+								resultSubscriptionElement.addAttribute("node", topic);
+								resultSubscriptionElement.addAttribute("jid", toJID.getDomain());
+								resultSubscriptionElement.addAttribute("subscription", "not-verified");					
+							}
 							iqRouter.route(result);					
 							throw new PacketRejectedException();
 						}
@@ -118,10 +132,11 @@ public class IQSubscribeInterceptor implements PacketInterceptor {
 							IQ result = IQ.createResultIQ(iq);
 							result.setChildElement(iq.getChildElement().createCopy());
 							result.setError(PacketError.Condition.internal_server_error);
-															
+
 							iqRouter.route(result);					
 							throw new PacketRejectedException();
 						}
+						
 					} 
 					catch (Exception e){
 						IQ result = IQ.createResultIQ(iq);

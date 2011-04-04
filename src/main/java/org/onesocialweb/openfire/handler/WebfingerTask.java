@@ -5,10 +5,11 @@ import javax.persistence.EntityManager;
 import org.dom4j.dom.DOMDocument;
 import org.jivesoftware.openfire.IQRouter;
 import org.jivesoftware.openfire.XMPPServer;
+import org.onesocialweb.model.cache.DomainCache;
 import org.onesocialweb.model.vcard4.Profile;
 import org.onesocialweb.openfire.OswPlugin;
 import org.onesocialweb.openfire.manager.WebfingerManager;
-import org.onesocialweb.openfire.model.cache.DomainCache;
+import org.onesocialweb.openfire.model.cache.PersistentDomainCache;
 import org.onesocialweb.xml.dom.VCard4DomWriter;
 import org.onesocialweb.xml.dom.imp.DefaultVCard4DomWriter;
 import org.onesocialweb.xml.namespace.VCard4;
@@ -49,7 +50,7 @@ public class WebfingerTask implements Runnable{
 			if (cache==null){
 				final EntityManager em = OswPlugin.getEmFactory().createEntityManager();			
 				em.getTransaction().begin();
-				DomainCache newDomain= new DomainCache();
+				PersistentDomainCache newDomain= new PersistentDomainCache();
 				newDomain.setDomain(new JID(jid).getDomain());
 				newDomain.setProtocols("ostatus");
 				em.persist(newDomain);

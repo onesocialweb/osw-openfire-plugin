@@ -33,6 +33,6 @@
     <class>org.onesocialweb.openfire.model.vcard4.PersistentEmailField</class>
     <class>org.onesocialweb.openfire.model.vcard4.PersistentNicknameField</class>
     <class>org.onesocialweb.openfire.model.vcard4.PersistentProfile</class>
-    <class>org.onesocialweb.openfire.model.cache.DomainCache</class>              
+    <class>org.onesocialweb.openfire.model.cache.PersistentDomainCache</class>              
   </persistence-unit>
 </persistence>

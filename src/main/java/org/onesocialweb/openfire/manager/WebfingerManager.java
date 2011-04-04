@@ -18,13 +18,13 @@ import javax.persistence.Query;
 
 import org.dom4j.DocumentException;
 import org.dom4j.io.SAXReader;
+import org.onesocialweb.model.cache.DomainCache;
 import org.onesocialweb.model.vcard4.DefaultVCard4Factory;
 import org.onesocialweb.model.vcard4.Profile;
 import org.onesocialweb.model.vcard4.VCard4Factory;
 import org.onesocialweb.model.vcard4.XFeedField;
 import org.onesocialweb.model.xml.hcard.HCardReader;
 import org.onesocialweb.model.xml.hcard.XMLHelper;
-import org.onesocialweb.openfire.model.cache.DomainCache;
 import org.onesocialweb.xml.dom4j.ElementAdapter;
 import org.onesocialweb.xml.namespace.OStatus;
 import org.w3c.dom.Element;
@@ -221,6 +221,16 @@ public class WebfingerManager {
 		List<DomainCache> entries = query.getResultList();
 		if ((entries!=null) && (entries.size()>0))
 			return entries.get(0);
+
+		return null;
+	}
+	
+	public List<DomainCache> getCache(EntityManager em){		
+		
+		Query query = em.createQuery("SELECT x FROM DomainCache x");		
+		List<DomainCache> entries = query.getResultList();
+		if ((entries!=null) && (entries.size()>0))
+			return entries;
 
 		return null;
 	}
