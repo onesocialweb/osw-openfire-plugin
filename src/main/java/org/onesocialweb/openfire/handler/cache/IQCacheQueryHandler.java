@@ -79,7 +79,7 @@ public class IQCacheQueryHandler extends IQHandler {
 			CacheDomWriter writer = new CacheDomWriter();
 			DOMDocument domDocument = new DOMDocument();
 			IQ result = IQ.createResultIQ(packet);
-			org.dom4j.Element query = (org.dom4j.Element) result.setChildElement(NAME, NAMESPACE);
+			org.dom4j.Element query = (org.dom4j.Element) result.setChildElement(NAME, NAMESPACE);			
 			for (DomainCache c: cache){
 				Element domainElement = (Element)domDocument.appendChild(domDocument.createElementNS(NAMESPACE, "domain"));
 				writer.toElement(c, domainElement);

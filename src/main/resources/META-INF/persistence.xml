@@ -15,6 +15,7 @@
     <class>org.onesocialweb.openfire.model.atom.PersistentAtomEntry</class>
     <class>org.onesocialweb.openfire.model.atom.PersistentAtomLink</class>
     <class>org.onesocialweb.openfire.model.atom.PersistentAtomPerson</class>
+    <class>org.onesocialweb.openfire.model.atom.PersistentAtomTo</class>
     <class>org.onesocialweb.openfire.model.atom.PersistentAtomSource</class>     
     <class>org.onesocialweb.openfire.model.atom.PersistentAtomReplyTo</class>
     <class>org.onesocialweb.openfire.model.relation.PersistentRelation</class>

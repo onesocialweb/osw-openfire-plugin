@@ -19,9 +19,11 @@ package org.onesocialweb.openfire.model.activity;
 import java.util.Date;
 
 import org.onesocialweb.model.activity.ActivityFactory;
+import org.onesocialweb.model.atom.AtomFactory;
 import org.onesocialweb.model.atom.DefaultAtomHelper;
 import org.onesocialweb.openfire.model.acl.PersistentAclDomReader;
 import org.onesocialweb.openfire.model.atom.PersistentAtomDomReader;
+import org.onesocialweb.openfire.model.atom.PersistentAtomFactory;
 import org.onesocialweb.xml.dom.AclDomReader;
 import org.onesocialweb.xml.dom.ActivityDomReader;
 import org.onesocialweb.xml.dom.AtomDomReader;
@@ -36,6 +38,11 @@ public class PersistentActivityDomReader extends ActivityDomReader {
 	@Override
 	protected ActivityFactory getActivityFactory() {
 		return new PersistentActivityFactory();
+	}
+	
+	@Override
+	protected AtomFactory getAtomFactory() {
+		return new PersistentAtomFactory();
 	}
 
 	@Override

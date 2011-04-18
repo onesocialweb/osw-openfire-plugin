@@ -24,6 +24,7 @@ import org.onesocialweb.model.atom.AtomLink;
 import org.onesocialweb.model.atom.AtomPerson;
 import org.onesocialweb.model.atom.AtomReplyTo;
 import org.onesocialweb.model.atom.AtomSource;
+import org.onesocialweb.model.atom.AtomTo;
 
 public class PersistentAtomFactory extends AtomFactory {
 
@@ -60,6 +61,10 @@ public class PersistentAtomFactory extends AtomFactory {
 	@Override
 	public AtomReplyTo reply() {
 		return new PersistentAtomReplyTo();
+	}
+	
+	public AtomTo recipient() {
+		return new PersistentAtomTo();
 	}
 
 }

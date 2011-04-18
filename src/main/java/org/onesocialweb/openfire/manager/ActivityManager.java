@@ -45,7 +45,8 @@ import org.onesocialweb.model.activity.ActivityObject;
 import org.onesocialweb.model.atom.AtomContent;
 import org.onesocialweb.model.atom.AtomFactory;
 import org.onesocialweb.model.atom.AtomLink;
-import org.onesocialweb.model.atom.AtomReplyTo;
+import org.onesocialweb.model.atom.AtomPerson;
+import org.onesocialweb.model.atom.AtomTo;
 import org.onesocialweb.model.atom.DefaultAtomHelper;
 import org.onesocialweb.openfire.OswPlugin;
 import org.onesocialweb.openfire.exception.AccessDeniedException;
@@ -115,10 +116,11 @@ public class ActivityManager {
 	public void publishActivity(String userJID, ActivityEntry entry) throws UserNotFoundException {
 		// Overide the actor to avoid spoofing
 		User user = UserManager.getInstance().getUser(new JID(userJID).getNode());
-		ActivityActor actor = activityFactory.actor();
-		actor.setUri(userJID);
-		actor.setName(user.getName());
-		actor.setEmail(user.getEmail());
+		AtomPerson author= atomFactory.person();		
+		
+		author.setUri(userJID);
+		author.setName(user.getName());
+		author.setEmail(user.getEmail());
 		
 		addMentions(entry);
 
@@ -130,7 +132,7 @@ public class ActivityManager {
 			object.setId(DefaultAtomHelper.generateId());
 			
 		}
-		entry.setActor(actor);
+		entry.addAuthor(author);
 		entry.setPublished(Calendar.getInstance().getTime());
 		em.persist(entry);
 		em.getTransaction().commit();
@@ -157,12 +159,13 @@ public class ActivityManager {
 		em.close();
 
 		//if the uri is an web address 
-		String uri=entry.getActor().getUri();
+		String uri=entry.hasAuthors() ? entry.getAuthors().get(0).getUri() : entry.getActor().getUri();
+		String name= entry.hasAuthors() ? entry.getAuthors().get(0).getName() : entry.getActor().getName();
 		if (uri.startsWith("http://")){
 			uri=uri.substring(7, uri.length());
 			int index=uri.indexOf("/");
 			uri=uri.substring(0, index);
-			uri=entry.getActor().getName() + "@" + uri; 
+			uri= name + "@" + uri; 
 		}
 				
 		// Broadcast the notifications
@@ -185,19 +188,20 @@ public class ActivityManager {
 		// Overide the actor to avoid spoofing
 	
 		User user = UserManager.getInstance().getUser(new JID(userJID).getNode());
-		ActivityActor actor = activityFactory.actor();
-		actor.setUri(userJID);
-		actor.setName(user.getName());
-		actor.setEmail(user.getEmail());
+		AtomPerson author = atomFactory.person();
+		author.setUri(userJID);
+		author.setName(user.getName());
+		author.setEmail(user.getEmail());
 		
 		final EntityManager em = OswPlugin.getEmFactory().createEntityManager();
 	
 		PersistentActivityEntry oldEntry=em.find(PersistentActivityEntry.class, entry.getId());
 
-		if ((oldEntry==null) || (!oldEntry.getActor().getUri().equalsIgnoreCase(userJID)))
+		String oldJID= oldEntry.hasAuthors() ? oldEntry.getAuthors().get(0).getUri() : oldEntry.getActor().getUri();
+		if ((oldEntry==null) || (!oldJID.equalsIgnoreCase(userJID)))
 			throw new UnauthorizedException();
 	
-		oldEntry.setActor(actor);
+		oldEntry.addAuthor(author);
 		oldEntry.setUpdated(Calendar.getInstance().getTime());
 		for (ActivityObject obj: oldEntry.getObjects()){
 			obj.setUpdated(Calendar.getInstance().getTime());
@@ -240,12 +244,13 @@ public class ActivityManager {
 	public void commentActivity(String userJID, ActivityEntry commentEntry) throws UserNotFoundException, UnauthorizedException {
 		// Overide the actor to avoid spoofing
 		User user = UserManager.getInstance().getUser(new JID(userJID).getNode());
-		ActivityActor actor = activityFactory.actor();
-		actor.setUri(userJID);
-		actor.setName(user.getName());
-		actor.setEmail(user.getEmail());
+		AtomPerson author=atomFactory.person();
 		
-		commentEntry.setActor(actor); 
+		author.setUri(userJID);
+		author.setName(user.getName());
+		author.setEmail(user.getEmail());
+		
+		commentEntry.addAuthor(author);
 	
 		final EntityManager em = OswPlugin.getEmFactory().createEntityManager();
 		em.getTransaction().begin();
@@ -260,7 +265,8 @@ public class ActivityManager {
 		
 		// Broadcast a notification to the owner of the original post...sending the comment along
 		// as the owner of the activity will own the comments too
-		notifyComment(userJID, originalEntry.getActor().getUri() , commentEntry);
+		String parentJID= originalEntry.getAuthors().size() > 0 ? originalEntry.getAuthors().get(0).getUri() :  originalEntry.getActor().getUri() ;
+		notifyComment(userJID, parentJID, commentEntry);
 	}
 	
 	public void deleteActivity(String fromJID, String activityId) throws UserNotFoundException, UnauthorizedException {
@@ -270,7 +276,8 @@ public class ActivityManager {
 		em.getTransaction().begin();
 		PersistentActivityEntry activity= em.find(PersistentActivityEntry.class, activityId);									
 		
-		if ((activity==null) || (!activity.getActor().getUri().equalsIgnoreCase(fromJID)))
+		String oldJID= activity.hasAuthors() ? activity.getAuthors().get(0).getUri() : activity.getActor().getUri();
+		if ((activity==null) || (!oldJID.equalsIgnoreCase(fromJID)))
 			throw new UnauthorizedException();				
 		
 		if (activity.hasReplies()){
@@ -330,8 +337,8 @@ public class ActivityManager {
 	public List<ActivityEntry> getActivities(String requestorJID, String targetJID) throws UserNotFoundException {
 		final EntityManager em = OswPlugin.getEmFactory().createEntityManager();
 		Query query = em.createQuery("SELECT DISTINCT entry FROM ActivityEntry entry" + "             JOIN entry.rules rule "
-				+ "             JOIN rule.actions action " + "             JOIN rule.subjects subject "
-				+ "             WHERE entry.actor.uri = :target " + "             AND action.name = :view "
+				+ "             JOIN entry.authors author JOIN rule.actions action " + "             JOIN rule.subjects subject  "
+				+ "             WHERE (entry.actor.uri = :target OR author.uri = :target)" + "             AND action.name = :view "
 				+ "             AND action.permission = :grant " + "             AND (subject.type = :everyone "
 				+ "                  OR (subject.type = :group_type " + "                     AND subject.name IN (:groups)) "
 				+ "                  OR (subject.type = :person " + "                      AND subject.name = :jid)) ORDER BY entry.published DESC");
@@ -400,7 +407,8 @@ public class ActivityManager {
 		if ((previousActivity != null) && (messages.size()>0)){
 			// In the case of an update, we check that the incoming message is really from the author of the 
 			// original post, i.e. the only one who has the rights to modify the activity.
-			if (!remoteJID.equalsIgnoreCase(previousActivity.getActor().getUri()))
+			String previousJID= previousActivity.hasAuthors() ? previousActivity.getAuthors().get(0).getUri() : previousActivity.getActor().getUri();
+			if (!remoteJID.equalsIgnoreCase(previousJID))
 				throw new AccessDeniedException("User does not have the rights to modify this activity");
 			//due to popular demand, we will move to the top of the inbox any updated or commented message
 			//message.setReceived(previousActivity.getPublished());
@@ -432,13 +440,14 @@ public class ActivityManager {
 		PersistentActivityEntry parentActivity = em.find(PersistentActivityEntry.class, commentEntry.getParentId());
 			
 		// store the comment
-		// first we update it... comment should already have all the links about
-		//being a reply...
+		// first we update it... 
 		commentEntry.setId(DefaultAtomHelper.generateId());
 		for (ActivityObject object : commentEntry.getObjects()) {
 			object.setId(DefaultAtomHelper.generateId());
 		}														
 		commentEntry.setPublished(Calendar.getInstance().getTime());
+		String parentJID= parentActivity.hasAuthors() ? parentActivity.getAuthors().get(0).getUri() : parentActivity.getActor().getUri();
+		commentEntry.addLink(atomFactory.link("xmpp:"+parentJID+"node=urn:xmpp:microblog:0:replies:item="+parentActivity.getId(), "alternate", null, "application/atom+xml"));
 		
 		//setting the acl-rules, same visibility as the parent...
 		commentEntry.setAclRules(parentActivity.getAclRules());
@@ -459,7 +468,8 @@ public class ActivityManager {
 		em.getTransaction().commit();
 		em.close();
 		
-		if (localJID.equalsIgnoreCase(parentActivity.getActor().getUri()))
+		
+		if (localJID.equalsIgnoreCase(parentJID))
 			notify(localJID, parentActivity);
 		
 	}
@@ -605,22 +615,18 @@ public class ActivityManager {
 
 		// Send to recipients, if they can see it and have not already received it
 		if (entry.hasRecipients()) {
-			for (AtomReplyTo recipient : entry.getRecipients()) {
-				//TODO This is dirty, the recipient should be an IRI etc...
-				String recipientJID = recipient.getHref();
+			for (AtomTo recipient : entry.getRecipients()) {
 				//if the JID is not valid, then ignore it...
 				try {
-					JID jid = new JID(recipientJID);
+					JID jid = new JID(recipient.getUri());
 				}catch (IllegalArgumentException e){
 					continue;
 				}
 				
-				if ((recipientJID==null) || (recipientJID.length()==0) || (recipientJID.contains(";node=urn:xmpp:microblog")))
-					continue;
-				if (!alreadySent.contains(recipientJID) && canSee(fromJID, entry, recipientJID)) {
+				if (!alreadySent.contains(recipient.getUri()) && canSee(fromJID, entry, recipient.getUri())) {
 					alreadySent.add(fromJID);
 					
-					message.setTo(recipientJID);
+					message.setTo(recipient.getUri());
 					server.getMessageRouter().route(message);												
 				}
 			}
@@ -745,15 +751,12 @@ public class ActivityManager {
 
 		
 		if (entry.hasRecipients()) {
-			for (AtomReplyTo recipient : entry.getRecipients()) {
-				
-				String recipientJID = recipient.getHref();  
-				if ((recipientJID==null) || (recipientJID.length()==0) || (recipientJID.contains(";node=urn:xmpp:microblog")))
-					continue;
-				if (!alreadySent.contains(recipientJID) && canSee(fromJID, entry, recipientJID)) {
+			for (AtomTo recipient : entry.getRecipients()) {
+								
+				if (!alreadySent.contains(recipient.getUri()) && canSee(fromJID, entry, recipient.getUri())) {
 					alreadySent.add(fromJID);
 					
-					message.setTo(recipientJID);
+					message.setTo(recipient.getUri());
 					server.getMessageRouter().route(message);												
 				}
 			}
@@ -808,14 +811,16 @@ public class ActivityManager {
 		}
 		
 		for (String jid: jids){
-			if ((jid!=null) && (jid.length()!=0) && (!hasRecipient(entry.getRecipients(), jid)))
-				entry.addRecipient(atomFactory.reply(null, jid, null, null));
+			if ((jid!=null) && (jid.length()!=0) && (!hasRecipient(entry.getRecipients(), jid))){
+				AtomTo to= atomFactory.recipient(jid);
+				entry.addRecipient(to);
+			}
 		}
 	}
 	
-	private boolean hasRecipient(List<AtomReplyTo> recipients, String jid){
-		for (AtomReplyTo recipient: recipients){
-			if ((recipient.getHref()!=null) && recipient.getHref().equals(jid))
+	private boolean hasRecipient(List<AtomTo> recipients, String jid){
+		for (AtomTo recipient: recipients){
+			if ((recipient!=null) && (recipient.getUri()!=null) && (recipient.getUri().equals(jid)))
 				return true;
 		}
 		return false;

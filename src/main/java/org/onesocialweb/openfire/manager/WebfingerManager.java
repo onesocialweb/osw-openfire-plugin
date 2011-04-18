@@ -232,6 +232,6 @@ public class WebfingerManager {
 		if ((entries!=null) && (entries.size()>0))
 			return entries;
 
-		return null;
+		return new ArrayList<DomainCache>();
 	}
 }

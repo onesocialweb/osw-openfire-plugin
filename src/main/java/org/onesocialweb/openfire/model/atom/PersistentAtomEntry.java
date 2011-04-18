@@ -26,6 +26,7 @@ import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
@@ -36,6 +37,7 @@ import org.onesocialweb.model.atom.AtomLink;
 import org.onesocialweb.model.atom.AtomPerson;
 import org.onesocialweb.model.atom.AtomReplyTo;
 import org.onesocialweb.model.atom.AtomSource;
+import org.onesocialweb.model.atom.AtomTo;
 
 @Entity(name="AtomEntry")
 public class PersistentAtomEntry extends PersistentAtomCommon implements AtomEntry {
@@ -52,11 +54,14 @@ public class PersistentAtomEntry extends PersistentAtomCommon implements AtomEnt
 	@OneToMany(cascade=CascadeType.ALL, targetEntity=PersistentAtomPerson.class, fetch=FetchType.EAGER)
 	private List<AtomPerson> contributors = new ArrayList<AtomPerson>();
 	
-	@OneToMany(cascade=CascadeType.ALL, targetEntity=PersistentAtomReplyTo.class, fetch=FetchType.EAGER)
-	private List<AtomReplyTo> recipients = new ArrayList<AtomReplyTo>();
+	@OneToMany(cascade=CascadeType.ALL, targetEntity=PersistentAtomTo.class, fetch=FetchType.EAGER)
+	private List<AtomTo> recipients = new ArrayList<AtomTo>();
 
 	@OneToMany(cascade=CascadeType.ALL, targetEntity=PersistentAtomLink.class, fetch=FetchType.EAGER)
 	private List<AtomLink> links = new ArrayList<AtomLink>();
+	
+	@OneToOne(cascade=CascadeType.ALL, targetEntity=PersistentAtomReplyTo.class, fetch=FetchType.EAGER)
+	private AtomReplyTo replyTo;
 	
 	@Id
 	private String id;
@@ -110,7 +115,7 @@ public class PersistentAtomEntry extends PersistentAtomCommon implements AtomEnt
 	}
 	
 	@Override
-	public void addRecipient(AtomReplyTo recipient) {
+	public void addRecipient(AtomTo recipient) {
 		this.recipients.add(recipient);
 	}
 	
@@ -159,7 +164,7 @@ public class PersistentAtomEntry extends PersistentAtomCommon implements AtomEnt
 	}
 	
 	@Override
-	public List<AtomReplyTo> getRecipients() {
+	public List<AtomTo> getRecipients() {
 		return recipients;
 	}
 
@@ -208,12 +213,8 @@ public class PersistentAtomEntry extends PersistentAtomCommon implements AtomEnt
 	}
 	
 	@Override
-	public AtomReplyTo getReplyTo(){
-		for (AtomReplyTo reply: recipients){
-			if (reply.getRef()!=null && (reply.getRef().length()>0))
-				return reply;
-		}
-		return null;
+	public AtomReplyTo getInReplyTo(){
+		return replyTo;
 	}
 
 	@Override
@@ -339,8 +340,13 @@ public class PersistentAtomEntry extends PersistentAtomCommon implements AtomEnt
 	}
 
 	@Override
-	public void setRecipients(final List<AtomReplyTo> recipients) {
+	public void setRecipients(final List<AtomTo> recipients) {
 		this.recipients = recipients;
+	}
+	
+	@Override
+	public void setInReplyTo(final AtomReplyTo replyTo) {
+		this.replyTo=replyTo;
 	}
 
 	@Override
